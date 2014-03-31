@@ -1,5 +1,4 @@
 xquery version "1.0-ml";
-declare namespace html = "http://www.w3.org/1999/xhtml";
 import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-doc-2007-01.xqy";
 
 let $q := "oecd"
