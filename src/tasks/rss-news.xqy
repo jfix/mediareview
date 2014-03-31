@@ -21,14 +21,18 @@ return
     ) || ".xml"
     
     let $doc := <news-item query="{$q}" guid="{$guid}" id="{$id}">
-      <title>{functx:substring-before-last($item/title, " - ")}</title>
-      <provider>{functx:substring-after-last($item/title, " - ")}</provider>
-      <link>{functx:substring-after-last($item/link, "url=")}</link>
-      <date>{$item/pubDate/text()}</date>
-      <content>{normalize-space(string-join(
-        xdmp:unquote($item/description/text(), (), ("repair-full", "format-xml"))//text()
-          , " "))
-      }</content>
+      <title>{ functx:substring-before-last($item/title, " - ") }</title>
+      <provider>{ functx:substring-after-last($item/title, " - ") }</provider>
+      <link>{ xdmp:url-decode(functx:substring-after-last($item/link, "url=")) }</link>
+      <date>{ $item/pubDate/text() }</date>
+      <content>
+        <text-only>{
+            normalize-space(string-join(
+                xdmp:unquote($item/description/text(), (), ("repair-full", "format-xml"))//text()
+            , " "))
+        }</text-only>
+        <full-html>{ xdmp:unquote($item/description/text(), (), ("repair-full", "format-xml")) }</full-html>
+    </content>
     </news-item>
     
     return 
