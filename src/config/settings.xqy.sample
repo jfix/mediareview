@@ -1,0 +1,7 @@
+xquery version "1.0-ml";
+
+module  namespace cfg = "http://mr-cfg";
+
+(: get it here: http://www.opencalais.com/APIkey :)
+declare variable $opencalais-apikey := "yoursecretkeyhere";
+
