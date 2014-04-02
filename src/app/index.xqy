@@ -11,6 +11,7 @@ declare option xdmp:output "media-type=text/html";
         <div>
             <ul>{
             for $item in collection("news-item")//news-item
+            order by $item/normalized-date descending
             return 
                 <li>
                     {$item/date}: <a href="{$item//link}">{ $item/title || " - " || $item/provider}</a>
