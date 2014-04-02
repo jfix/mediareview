@@ -1,6 +1,11 @@
 xquery version "1.0-ml";
 import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-doc-2007-01.xqy";
+import module namespace nd="http://marklogic.com/appservices/utils/normalize-dates" at "/src/lib/normalize-dates.xqm";
+
 declare namespace xh = "xdmp:http";
+
+(: required for date normalization :)
+let $regex:= "^...,\s+[0-3]?\d\s+\S+\s+\d\d\d\d\s+[0-2]?\d:[0-5]\d:[0-5]\d\s+...$"
 
 let $q := "oecd"
 let $u := "https://news.google.com/news/feeds?pz=1&amp;cf=all&amp;ned=us&amp;hl=en&amp;output=rss&amp;q=oecd"
@@ -29,6 +34,7 @@ return
             <provider>{ functx:substring-after-last($item/title, " - ") }</provider>
             <link>{ xdmp:url-decode(functx:substring-after-last($item/link, "url=")) }</link>
             <date>{ $item/pubDate/text() }</date>
+            <normalized-date>{nd:normalize-datetime($item/pubDate/text(), $regex)}</normalized-date>
             <content>
                 <text-only>{
                     normalize-space(string-join(
