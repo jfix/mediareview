@@ -1,6 +1,6 @@
 xquery version "1.0-ml";
 import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-doc-2007-01.xqy";
-import module namespace nd="http://marklogic.com/appservices/utils/normalize-dates" at "/src/lib/normalize-dates.xqm";
+import module namespace nd="http://marklogic.com/appservices/utils/normalize-dates" at "/src/lib/xquery/normalize-dates.xqm";
 
 declare namespace xh = "xdmp:http";
 
@@ -23,11 +23,12 @@ return
         let $id := substring(xdmp:md5($guid), 1, 7)
         let $uri := string-join(
             ("/news", 
-                format-dateTime($dt, "[Y0001]"),
-                format-dateTime($dt, "[M01]"),
-                format-dateTime($dt, "[D01]"),
-            $id), "/"
-        ) || ".xml"
+            format-dateTime($dt, "[Y0001]"),
+            format-dateTime($dt, "[M01]"),
+            format-dateTime($dt, "[D01]"),
+            $id, 
+            "item.xml"), "/"
+        )
     
         let $doc := <news-item query="{$q}" guid="{$guid}" id="{$id}">
             <title>{ functx:substring-before-last($item/title, " - ") }</title>
