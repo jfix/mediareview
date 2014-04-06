@@ -5,3 +5,5 @@ module  namespace cfg = "http://mr-cfg";
 (: get it here: http://www.opencalais.com/APIkey :)
 declare variable $opencalais-apikey := "yoursecretkeyhere";
 
+(: screenshot-as-a-service url:)
+declare variable $phantomjs-url := "http://localhost:3000/?url=";

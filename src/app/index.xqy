@@ -15,7 +15,13 @@ declare option xdmp:output "media-type=text/html";
             return 
                 <li>
                     {$item/date}: <a href="{$item//link}">{ $item/title || " - " || $item/provider}</a>
-                
+                    -
+                    {if (("screenshot-saved" = xdmp:document-get-collections(xdmp:node-uri($item))))
+                     then
+                        <a href="{replace(xdmp:node-uri($item), "item.xml", "screenshot.png")}">screenshot</a>
+                     else 
+                        xdmp:node-uri($item)
+                    }
                 </li>
             }</ul>
         </div>
