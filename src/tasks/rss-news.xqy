@@ -8,7 +8,7 @@ declare namespace xh = "xdmp:http";
 let $regex:= "^...,\s+[0-3]?\d\s+\S+\s+\d\d\d\d\s+[0-2]?\d:[0-5]\d:[0-5]\d\s+...$"
 
 let $q := "oecd"
-let $u := "https://news.google.com/news/feeds?pz=1&amp;cf=all&amp;ned=us&amp;hl=en&amp;output=rss&amp;q=oecd"
+let $u := "https://news.google.com/news/feeds?pz=1&amp;cf=all&amp;ned=us&amp;hl=en&amp;output=rss&amp;q=oecd&amp;num=100"
 let $dt := current-dateTime()
 
 let $r := xdmp:http-get($u)
