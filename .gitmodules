@@ -1,0 +1,3 @@
+[submodule "src/lib/screenshot-as-a-service"]
+	path = src/lib/screenshot-as-a-service
+	url = git://github.com/fzaninotto/screenshot-as-a-service
