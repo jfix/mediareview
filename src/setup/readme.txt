@@ -14,3 +14,8 @@ screenshot-as-a-service:
 - cd src/lib/screenshot-as-a-service
 - npm install
 - nodemon app.js
+
+rxq
+- git submodule add git://github.com/xquery/rxq src/lib/rxq
+- update of rewriter/error files
+- copy rxq-rewriter.xqy and rxq.xqy to /src/lib/xquery

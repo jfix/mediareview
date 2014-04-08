@@ -1,8 +1,14 @@
 xquery version "1.0-ml";
-(:import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-doc-2007-01.xqy";:)
-(:declare namespace html = "http://www.w3.org/1999/xhtml";:)
-declare option xdmp:output "media-type=text/html";
+module namespace api = "http://mr-api";
 
+import module namespace rxq="﻿http://exquery.org/ns/restxq" at "/lib/xquery/rxq.xqy";
+
+declare
+    %rxq:path('/test')
+    %rxq:GET
+    %rxq:produces('text/html')
+function api:test-page()
+{
 <html>
     <head></head>
     <body><p>{
@@ -34,3 +40,4 @@ cts:collection-query("screenshot-saved")
         </div>
     </body>
 </html>
+};
