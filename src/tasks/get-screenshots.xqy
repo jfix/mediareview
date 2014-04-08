@@ -17,7 +17,7 @@ let $has-screenshot := ("screenshot-saved" = xdmp:document-get-collections(xdmp:
 return 
     if (not($has-screenshot))
     then
-        xdmp:invoke("take-one-screenshot.xqy", 
+        xdmp:invoke("/src/tasks/take-one-screenshot.xqy", 
             (
                 map:new(map:entry("path", replace($doc-url, "item.xml", "screenshot.png"))),
                 map:new(map:entry("link", string($i//link))),
