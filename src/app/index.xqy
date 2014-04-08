@@ -7,7 +7,14 @@ declare option xdmp:output "media-type=text/html";
     <head></head>
     <body><p>{
         count(collection("news-item")//news-item)
-        } items</p>
+        } items
+        
+        - {count(cts:search(/news-item, cts:and-not-query(
+cts:collection-query("news-item")
+,
+cts:collection-query("screenshot-saved")
+)
+))} missing screenshot image</p>
         <div>
             <ul>{
             for $item in collection("news-item")//news-item
