@@ -29,13 +29,14 @@ return
             $id, 
             "item.xml"), "/"
         )
-    
+        let $normalized-dateTime := nd:normalize-datetime($item/pubDate/text(), $regex)
+        
         let $doc := <news-item query="{$q}" guid="{$guid}" id="{$id}">
             <title>{ functx:substring-before-last($item/title, " - ") }</title>
             <provider>{ functx:substring-after-last($item/title, " - ") }</provider>
             <link>{ xdmp:url-decode(functx:substring-after-last($item/link, "url=")) }</link>
             <date>{ $item/pubDate/text() }</date>
-            <normalized-date>{nd:normalize-datetime($item/pubDate/text(), $regex)}</normalized-date>
+            <normalized-date time="{xs:time($normalized-dateTime)}">{xs:date($normalized-dateTime)}</normalized-date>
             <content>
                 <text-only>{
                     normalize-space(string-join(

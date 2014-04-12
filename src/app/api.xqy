@@ -4,6 +4,36 @@ module namespace api = "http://mr-api";
 import module namespace rxq="﻿http://exquery.org/ns/restxq" at "/lib/xquery/rxq.xqy";
 
 (:~
+ : Provide a JSON array containing news story count per day. Number of past days can be configured.
+ : Returns JSON array
+ :)
+declare
+    %rxq:path('/api/news-items')
+    %rxq:GET
+    %rxq:produces('application/json')
+function api:news-items()
+{
+    (: restrict output to the last X days, default is last 7 days :)
+    let $since := xs:integer(xdmp:get-request-field("since", "7"))
+    let $query := cts:element-range-query(xs:QName("normalized-date"), ">=", (current-date() - (xs:dayTimeDuration('P1D') * (if ($since > 365) then 365 else $since))))
+    
+    return
+    (
+        xdmp:set-response-code(200, "OK"),
+        xdmp:to-json(
+            for $date in cts:element-values(xs:QName("normalized-date"), (), (), $query)
+            order by $date descending
+            return
+                map:new((
+                    map:entry("date", $date),
+                    map:entry("count", cts:frequency($date))
+                ))
+        )
+    )
+};
+
+
+(:~
  : Returns XML document of news-item identified by $id
  :
  :)
@@ -15,7 +45,10 @@ function api:news-item(
     $id as xs:string
 ) as document-node()
 {
+    (
+    xdmp:set-response-code(200, "OK"),
     collection("id:"||$id)[1]
+    )
 };
 
 (:~
@@ -31,9 +64,15 @@ function api:screenshot(
 )
 {
     try {
-        document(replace(xdmp:node-uri(collection("id:"||$id)[1]), "item.xml", "screenshot.png"))    
+        (
+        xdmp:set-response-code(200, "OK"),
+        document(replace(xdmp:node-uri(collection("id:"||$id)[1]), "item.xml", "screenshot.png"))
+        )
     } catch($e) {
+        (
+        xdmp:set-response-code(404, "Not found"),
         xdmp:http-get("http://placehold.it/800x400&amp;text=screenshot+not+yet+available")[2]
+        )
     }            
 };
 
@@ -46,6 +85,7 @@ declare
     %rxq:produces('text/html')
 function api:test-page()
 {
+xdmp:set-response-code(200, "OK"),
 <html>
     <head></head>
     <body><p>{
@@ -61,7 +101,7 @@ cts:collection-query("screenshot-saved")
         <div>
             <ul>{
             for $item in collection("news-item")//news-item
-            order by xs:dateTime($item/normalized-date) descending
+            order by xs:date($item/normalized-date) descending, xs:time($item/normalized-date/@time) descending
             return 
                 <li>
                     {$item/date}: <a href="{$item/link}">{ $item/title || " - " || $item/provider}</a>
