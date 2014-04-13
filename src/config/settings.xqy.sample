@@ -2,15 +2,18 @@ xquery version "1.0-ml";
 
 module  namespace cfg = "http://mr-cfg";
 
+(: OPENCALAIS :)
 (: get it here: http://www.opencalais.com/APIkey :)
 declare variable $opencalais-apikey := "yoursecretkeyhere";
 
+(: SCREENSHOT-AS-A-SERVICE :)
 (: screenshot-as-a-service url:)
 declare variable $phantomjs-url := "http://localhost:3000/?url=";
 
+(: DETECTLANGUAGE.COM :)
 (: get it here: http://detectlanguage.com/ :)
 declare variable $detectlanguage-apikey := "yoursecretkeyhere";
 (: use this to check how many queries remain in the free plan :)
 declare variable $detectlanguage-status-url := "http://ws.detectlanguage.com/0.2/user/status?key=" || $detectlanguage-apikey;
 (: this is the api endpoint to call to get a json object with the answer :)
-declare variable $detectlanguage-query-url := "http://ws.detectlanguage.com/0.2/detect?key=" || $detectlanguage-apikey || "&amp;q=";
+declare variable $detectlanguage-query-url := "http://ws.detectlanguage.com/0.2/detect";
