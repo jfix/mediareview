@@ -1,17 +1,45 @@
 xquery version "1.0-ml";
-module namespace api = "http://mr-api";
 
+(:
+    This module exposes the API.
+    It uses RXQ as the routing mechanism.
+    Look at the annotations for each function to understand what they
+    are supposed to do.
+    
+ :)
+
+module namespace api = "http://mr-api";
 import module namespace rxq="﻿http://exquery.org/ns/restxq" at "/lib/xquery/rxq.xqy";
 
 (:~
- : Provide a JSON array containing news story count per day. Number of past days is configurable.
- : Returns JSON array
+ : Return a JSON array containing language codes and the number of times 
+ : they occur in the DB.
  :)
 declare
-    %rxq:path('/api/news-items')
+    %rxq:path('/api/languages')
     %rxq:GET
     %rxq:produces('application/json')
-function api:news-items()
+function api:languages()
+{
+    let $languages := cts:element-values(xs:QName("language"), (), "frequency-order")
+    let $array := json:array()
+    let $_ := for $l in $languages return json:array-push($array, ($l, cts:frequency($l)))
+    return
+        (
+            xdmp:set-response-code(200, "OK"), 
+            xdmp:to-json($array)
+        )
+};
+
+(:~
+ : Provide a JSON array containing news story count per day. Number of 
+ : past days is configurable. Returns JSON array
+ :)
+declare
+    %rxq:path('/api/frequency')
+    %rxq:GET
+    %rxq:produces('application/json')
+function api:frequency()
 {
     (: restrict output to the last X days, default is last 7 days :)
     let $since := xs:integer(xdmp:get-request-field("since", "7"))
@@ -57,8 +85,8 @@ function api:news-item(
 ) as document-node()
 {
     (
-    xdmp:set-response-code(200, "OK"),
-    collection("id:"||$id)[1]
+        xdmp:set-response-code(200, "OK"),
+        collection("id:"||$id)[1]
     )
 };
 
@@ -76,13 +104,13 @@ function api:screenshot(
 {
     try {
         (
-        xdmp:set-response-code(200, "OK"),
-        document(replace(xdmp:node-uri(collection("id:"||$id)[1]), "item.xml", "screenshot.png"))
+            xdmp:set-response-code(200, "OK"),
+            document(replace(xdmp:node-uri(collection("id:"||$id)[1]), "item.xml", "screenshot.png"))
         )
     } catch($e) {
         (
-        xdmp:set-response-code(404, "Not found"),
-        xdmp:http-get("http://placehold.it/800x400&amp;text=screenshot+not+yet+available")[2]
+            xdmp:set-response-code(404, "Not found"),
+            xdmp:http-get("http://placehold.it/800x400&amp;text=screenshot+not+yet+available")[2]
         )
     }            
 };
@@ -99,26 +127,29 @@ function api:test-page()
 xdmp:set-response-code(200, "OK"),
 <html>
     <head></head>
-    <body><p>{
-        count(collection("news-item")//news-item)
-        } items
-        
-        - {count(cts:search(/news-item, cts:and-not-query(
-            cts:collection-query("news-item")
-            ,
-            cts:collection-query("screenshot-saved")
-            )
-            ))} 
-        missing screenshot image
-        
-        - {count(cts:search(/news-item, cts:and-not-query(
-            cts:collection-query("news-item")
-            ,
-            cts:collection-query("language-detected")
-            )
-            ))} 
-        not yet language-detected
-</p>
+    <body>
+        <p>{
+            count(collection("news-item")//news-item)
+            } items
+            
+            - {count(cts:search(/news-item, cts:and-not-query(
+                cts:collection-query("news-item")
+                ,
+                cts:collection-query("screenshot-saved")
+                )
+                ))} 
+            missing screenshot image
+            
+            - {count(cts:search(/news-item, cts:and-not-query(
+                cts:collection-query("news-item")
+                ,
+                cts:collection-query("language-detected")
+                )
+                ))
+            } 
+            not yet language-detected
+        </p>
+        <hr/>
         <div>
             <ul>{
             for $item in collection("news-item")//news-item
