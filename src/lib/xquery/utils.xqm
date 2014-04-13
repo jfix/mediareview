@@ -4,7 +4,24 @@ module namespace u="http://mr-utils";
 
 import module namespace cfg = "http://mr-cfg" at "/src/config/settings.xqy";
 import module namespace json="http://marklogic.com/xdmp/json" at "/MarkLogic/json/json.xqy";
+import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-doc-2007-01.xqy";
+
 declare namespace jb = "http://marklogic.com/xdmp/json/basic";
+
+(:~
+ : Returns protocol + host from a given URL. This is should help
+ : for the news providers to get their "home page" address.
+ : 
+ : @param $url as xs:string
+ : @return xs:string? or empty-sequence()
+ :
+ :)
+declare function u:extract-host-from-url(
+    $url as xs:string
+) as xs:string?
+{
+    functx:get-matches($url, "https?://[^/]+")[1]
+};
 
 (:~
  : test whether we can still send requests to the detectlanguage.com api
