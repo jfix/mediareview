@@ -104,18 +104,32 @@ xdmp:set-response-code(200, "OK"),
         } items
         
         - {count(cts:search(/news-item, cts:and-not-query(
-cts:collection-query("news-item")
-,
-cts:collection-query("screenshot-saved")
-)
-))} missing screenshot image</p>
+            cts:collection-query("news-item")
+            ,
+            cts:collection-query("screenshot-saved")
+            )
+            ))} 
+        missing screenshot image
+        
+        - {count(cts:search(/news-item, cts:and-not-query(
+            cts:collection-query("news-item")
+            ,
+            cts:collection-query("language-detected")
+            )
+            ))} 
+        not yet language-detected
+</p>
         <div>
             <ul>{
             for $item in collection("news-item")//news-item
             order by xs:date($item/normalized-date) descending, xs:time($item/normalized-date/@time) descending
             return 
                 <li>
-                    {$item/date}: <a href="{$item/link}">{ $item/title || " - " || $item/provider}</a>
+                    {$item/date}: 
+                    
+                    {if ($item/language) then $item/language || " - " else ()}
+                    
+                    <a href="{$item/link}">{ $item/title || " - " || $item/provider}</a>
                     -
                     {if (("screenshot-saved" = xdmp:document-get-collections(xdmp:node-uri($item))))
                      then
