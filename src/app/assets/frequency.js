@@ -45,7 +45,7 @@
             ]
         };
         
-        $.getJSON('/api/news-items?since=100', function(data) {
+        $.getJSON('/api/frequency?since=100', function(data) {
             var d = data;
             var date = d[0][0].split('-');
 
