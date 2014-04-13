@@ -52,10 +52,10 @@ declare namespace xh = "xdmp:http";
 declare variable $url as xs:string external;
 
 try {
-    (: It turned out to work better, for larger texts, to POST the request,
-       although a GET works too, in theory. :)
     let $doc := document($url)
     
+    (: It turned out to work better, for larger texts, to POST the request,
+       although a GET works too, in theory. :)
     let $res := xdmp:http-post($cfg:detectlanguage-query-url, 
         <options xmlns="xdmp:http">
             <headers><content-type>application/x-www-form-urlencoded</content-type></headers>
@@ -81,8 +81,10 @@ try {
                        xdmp:node-insert-child($doc/news-item, <language confidence="{$confidence}">{$lang}</language>)
                        )
                 else
-                    fn:error(QName("", "DETECTIONNOTRELIABLE"), "The language detection was not reliable for '" || $url || "', not using result.")
+                    xdmp:log("DETECTIONNOTRELIABLE: The language detection was not reliable for '" || $url || "', not using this result: " || xdmp:quote($res[2]))
+                    (:fn:error(QName("", "DETECTIONNOTRELIABLE"), "The language detection was not reliable for '" || $url || "', not using result."):)
 
 } catch($e) {
-    fn:error(QName("", "DETECTLANGUAGEERROR"), $e//*:message)
+    xdmp:log("DETECTLANGUAGEERROR: "|| $e//*:message)
+(:    fn:error(QName("", "DETECTLANGUAGEERROR"), $e//*:message):)
 }

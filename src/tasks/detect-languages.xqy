@@ -26,11 +26,7 @@ for $i in (collection("news-item")/news-item[not(language)])[1 to 100]
         if (utils:detectlanguage-api-requests-remaining())
         then
             (
-                xdmp:invoke("/src/tasks/detect-language.xqy",
-                    (
-                        map:new(map:entry("url", $doc-url))
-                    )
-                ),
+                xdmp:invoke("/src/tasks/detect-language.xqy", (map:new(map:entry("url", $doc-url)))),
                 (: wait a couple of seconds before continuing, you never know ... :)
                 xdmp:sleep(2000)
             )
