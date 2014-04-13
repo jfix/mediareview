@@ -7,14 +7,18 @@ declare namespace xh = "xdmp:http";
 (: required for date normalization :)
 let $regex:= "^...,\s+[0-3]?\d\s+\S+\s+\d\d\d\d\s+[0-2]?\d:[0-5]\d:[0-5]\d\s+...$"
 
-let $q := "oecd"
-let $u := "https://news.google.com/news/feeds?pz=1&amp;cf=all&amp;ned=us&amp;hl=en&amp;output=rss&amp;q=" || $q || "&amp;num=100"
+let $queries := ("oecd", "ocde") (: for Google-based RSS feeds, add more here :)
+
+let $urls := $queries ! "https://news.google.com/news/feeds?pz=1&amp;cf=all&amp;ned=us&amp;hl=en&amp;output=rss&amp;num=100&amp;q=" || .
+
 let $dt := current-dateTime()
 
-let $r := xdmp:http-get($u)
-let $d := $r[2]
-let $h := $r[1]
-let $_ := xdmp:log("rss-news.xqy: " || $h//xh:code/text() || " " || $h//xh:message/text() || " -- " || count($d//item) || " items retrieved.")
+for $u in $urls
+    let $r := xdmp:http-get($u)
+    let $q := substring-after($u, "q=")
+    let $d := $r[2]
+    let $h := $r[1]
+    let $_ := xdmp:log("rss-news.xqy: " || $h//xh:code/text() || " " || $h//xh:message/text() || " -- " || count($d//item) || " items retrieved.")
 
 return 
     
