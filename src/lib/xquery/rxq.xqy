@@ -259,11 +259,16 @@ declare function rxq:passthru(
   $path
 )
 {
-    xdmp:document-get( xdmp:modules-root() || $path,
-    <options xmlns="xdmp:document-get"
-                xmlns:http="xdmp:http">
-           <format>binary</format>
-       </options>)
+    try {
+        let $doc := xdmp:document-get( xdmp:modules-root() || $path,
+            <options xmlns="xdmp:document-get" xmlns:http="xdmp:http">
+                <format>binary</format>
+            </options>
+        )
+        return (xdmp:set-response-code(200, "OK"), $doc)
+    } catch($e) {
+            xdmp:set-response-code(404, "Not found")
+    }
 };
 
 

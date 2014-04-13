@@ -43,11 +43,12 @@ declare default function namespace "http://www.w3.org/2005/xpath-functions";
 declare namespace rest = "http://marklogic.com/appservices/rest";
 declare variable $default-requests as element(rest:request)* := (
     <request xmlns="http://marklogic.com/appservices/rest"
-      uri="^/resources/(.*)$"
+      uri="^/app/assets/(.*)$"
       endpoint="/rxq-rewriter.xqy?mode={$rxq:_PASSTHRU_MODE}">
       <http method="GET" user-params="allow"/>
-      <uri-param name="path">resources/$1</uri-param>
+      <uri-param name="path">app/assets/$1</uri-param>
     </request>
+
 );
 
 declare option xdmp:mapping "false";
