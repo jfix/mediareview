@@ -9,7 +9,7 @@ let $regex:= "^...,\s+[0-3]?\d\s+\S+\s+\d\d\d\d\s+[0-2]?\d:[0-5]\d:[0-5]\d\s+...
 
 let $queries := ("oecd", "ocde") (: for Google-based RSS feeds, add more here :)
 
-let $urls := $queries ! "https://news.google.com/news/feeds?pz=1&amp;cf=all&amp;ned=us&amp;hl=en&amp;output=rss&amp;num=100&amp;q=" || .
+let $urls := for $query in $queries return  "https://news.google.com/news/feeds?pz=1&amp;cf=all&amp;ned=us&amp;hl=en&amp;output=rss&amp;num=100&amp;q=" || $query
 
 let $dt := current-dateTime()
 
