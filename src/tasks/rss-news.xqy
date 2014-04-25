@@ -7,6 +7,9 @@ declare namespace xh = "xdmp:http";
 (: required for date normalization :)
 let $regex:= "^...,\s+[0-3]?\d\s+\S+\s+\d\d\d\d\s+[0-2]?\d:[0-5]\d:[0-5]\d\s+...$"
 
+(: where to find the definitions of the sources of information :)
+let $sources := xdmp:unquote(xdmp:filesystem-file( xdmp:modules-root() || "/src/config/sources.xml"))//source
+
 let $queries := ("oecd", "ocde") (: for Google-based RSS feeds, add more here :)
 
 let $urls := for $query in $queries return  "https://news.google.com/news/feeds?pz=1&amp;cf=all&amp;ned=us&amp;hl=en&amp;output=rss&amp;num=100&amp;q=" || $query
