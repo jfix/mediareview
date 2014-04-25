@@ -2,13 +2,14 @@ xquery version "1.0-ml";
 import module namespace cfg = "http://mr-cfg" at "/src/config/settings.xqy";
 declare namespace xh = "xdmp:http";
 
+(: get all news items that don't have a "screenshot-saved" collection :)
 for $i in cts:search(/news-item, cts:and-not-query(
     cts:collection-query("news-item")
     ,
     cts:collection-query("screenshot-saved")
     )
 )
-   
+
     let $doc-url := xdmp:node-uri($i)
     
     (: make double-sure not to re-take snapshots :)
