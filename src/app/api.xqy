@@ -10,6 +10,35 @@ xquery version "1.0-ml";
 
 module namespace api = "http://mr-api";
 import module namespace rxq="﻿http://exquery.org/ns/restxq" at "/lib/xquery/rxq.xqy";
+import module namespace json="http://marklogic.com/xdmp/json" at "/MarkLogic/json/json.xqy";
+import module namespace u = "http://mr-utils" at "/lib/xquery/utils.xqm";
+
+(:~
+ : Return a JSON array containing provider information.
+ : TODO: add number of news-items per provider.
+ :)
+declare
+    %rxq:path('/api/providers')
+    %rxq:GET
+    %rxq:produces('application/json')
+function api:providers()
+{
+    (
+        xdmp:set-response-code(200, "OK"), 
+        xdmp:to-json( 
+            for $p in collection("provider")/provider
+                let $n := string($p/name)
+                let $l := string($p/link)
+                let $i := data($p/@id)
+                return 
+                        map:new((
+                            map:entry("id", $i), 
+                            map:entry("name", $n), 
+                            map:entry("link", $l)
+                        ))
+        ) 
+    )
+};
 
 (:~
  : Return a JSON array containing language codes and the number of times 
@@ -68,31 +97,151 @@ function api:frequency()
             else
                 json:array-push($full-array, ($string-date, 0))
 
-    return (xdmp:set-response-code(200, "OK"), xdmp:to-json($full-array))    
+    return (xdmp:set-response-code(200, "OK"), xdmp:to-json($full-array))
 };
 
+declare
+    %rxq:path('/api/status')
+    %rxq:GET
+function api:status(
+) as item()
+{
+    let $total-number-items := count(collection("news-item"))
+    let $items-missing-screenshot := count(cts:search(/news-item, cts:and-not-query(cts:collection-query("news-item"), cts:collection-query("screenshot-saved"))))
+    let $items-missing-language := count(cts:search(/news-item, cts:and-not-query(cts:collection-query("news-item"), cts:collection-query("language-detected"))))
+    
+    let $general := map:new((
+            map:entry("time-stamp", current-dateTime()),
+            map:entry("items-total", $total-number-items),
+            map:entry("items-missing-screenshot", $items-missing-screenshot),
+            map:entry("items-missing-language", $items-missing-language)
+        ))
+    let $screenshots := map:new((
+        (: add 
+            - last run timestamp
+            - status (success/error)
+            - number of items handled in last run
+        :)
+    ))
+
+    let $languages := map:new((
+        (: add 
+            language-detection
+            - last run timestamp
+            - status (success/error)
+            - # of items handled
+            
+        :)
+    ))
+
+    let $news-import := map:new((
+        (: add 
+            google-rss
+            - status (success/error)
+            - last run
+            - number of items inserted/ignored
+            oecd rss
+            - status (success/error)
+            - last run
+            - number of items inserted/ignored
+            ....
+            - status (success/error)
+            - last run
+            - number of items inserted/ignored
+        :)
+    ))
+
+
+    return
+        (xdmp:set-response-code(200, "OK"), 
+         xdmp:to-json(map:new((
+            map:entry("general", $general),
+            map:entry("screenshots", $screenshots),
+            map:entry("newsitems", $news-import),
+            map:entry("languages", $languages)
+         )))
+        )
+};
 
 (:~
- : Returns XML document of news-item identified by $id
+ : Returns XML or JSON document of news-item identified by $id
  :
  :)
 declare
-    %rxq:path('/api/news-items/([a-f0-9]+).xml')
+    %rxq:path('/api/news-items/([a-f0-9]+)\.(xml|json|html)')
     %rxq:GET
-    %rxq:produces('text/xml')
 function api:news-item(
-    $id as xs:string
-) as document-node()
+    $id as xs:string,
+    $ext as xs:string
+) as item()
 {
+    let $res := cts:search(/news-item, 
+                    cts:and-query((
+                        cts:collection-query("id:" || $id),
+                        cts:collection-query("news-item")
+                    ))
+                )
+    let $config := json:config("custom")
+    let $_ := map:put($config, "ignore-attribute-names", ("query", "guid", "confidence", "time"))
+    let $_ := map:put($config, "ignore-element-names", ("full-html", "date", "normalized-date"))
+
+    return
     (
-        xdmp:set-response-code(200, "OK"),
-        collection("id:"||$id)[1]
+        if (not($res))
+        then
+            (
+                xdmp:set-response-code(404, "Not found"),
+                "Not found - check item id"
+            )
+        else 
+            (
+                xdmp:set-response-code(200, "OK"),
+        
+                (: === HTML ==== :)
+
+                switch (lower-case($ext))
+                case "html" return
+                    (
+                        xdmp:set-response-content-type("text/html"),
+                        xdmp:xslt-invoke("/lib/xslt/item2html.xsl", $res)
+                    )
+                
+                (: === XML ==== :)
+                case "xml" return
+                    (
+                        xdmp:set-response-content-type("text/xml"),
+                        $res
+                    )
+                    
+                (: === JSON ==== :)
+                (: case "json" :)
+                default return
+                    (
+                        xdmp:set-response-content-type("application/json"),
+                     
+                        let $j := json:transform-to-json-object($res, $config)
+                        let $nm := map:get($j, "news-item")
+                        let $pm := map:new()
+                        
+                        let $provider-id := u:create-provider-id($res)
+                        
+                        let $_ := map:put($pm, "id", $provider-id)
+                        let $_ := map:put($pm, "name", map:get($nm, "provider"))
+                        let $_ := map:put($nm, "provider", $pm)
+                        let $_ := map:put($nm, "time", data($res/normalized-date/@time))
+                        let $_ := map:put($nm, "date", string($res/normalized-date))
+                        let $_ := map:put($nm, "screenshot", "/api/news-items/" || $res/@id || "/screenshot")
+                        
+                        return xdmp:to-json($j)
+                    )
+            )
     )
 };
 
 (:~
  : Returns screenshot of news-item identified by $id, or placeholder image otherwise
- :
+ : param $id string identifying the news item
+ : return 
  :)
 declare
     %rxq:path('/api/news-items/([a-f0-9]+)/screenshot')
@@ -100,7 +249,7 @@ declare
     %rxq:produces('image/png')
 function api:screenshot(
     $id as xs:string
-)
+) as item()
 {
     try {
         (
