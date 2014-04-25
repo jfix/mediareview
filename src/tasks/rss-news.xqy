@@ -8,7 +8,7 @@ declare namespace xh = "xdmp:http";
 let $regex:= "^...,\s+[0-3]?\d\s+\S+\s+\d\d\d\d\s+[0-2]?\d:[0-5]\d:[0-5]\d\s+...$"
 
 (: where to find the definitions of the sources of information :)
-let $sources := xdmp:unquote(xdmp:filesystem-file( xdmp:modules-root() || "/src/config/sources.xml"))//source
+let $sources := xdmp:unquote(xdmp:filesystem-file( xdmp:modules-root() || "/src/config/sources.xml"))/sources/source
 
 let $queries := ("oecd", "ocde") (: for Google-based RSS feeds, add more here :)
 
