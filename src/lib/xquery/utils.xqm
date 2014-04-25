@@ -2,7 +2,7 @@ xquery version "1.0-ml";
 
 module namespace u="http://mr-utils";
 
-import module namespace cfg = "http://mr-cfg" at "/src/config/settings.xqy";
+import module namespace cfg = "http://mr-cfg" at "../../config/settings.xqy";
 import module namespace json="http://marklogic.com/xdmp/json" at "/MarkLogic/json/json.xqy";
 import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-doc-2007-01.xqy";
 
@@ -70,6 +70,46 @@ declare function u:create-event(
             { (: payload???? :) }
         </event>
 };
+
+(:~
+ : Given a news-item element, return the URL path that points to the
+ : screenshot (this is mainly to have this not all over the place)
+ : No extension is given, mime-type is always "image/png"
+ :)
+declare function u:screenshot-url(
+    $news-item as element(news-item)
+) as xs:string
+{
+    "/api/news-items/" || $news-item/@id || "/screenshot"
+};
+
+(:~
+ : Given a news-item element, return the URL path that points to the
+ : provider of this news item. No extension in the URL, defaults to 
+ : JSON.
+ :)
+declare function u:provider-url(
+    $news-item as element(news-item)
+) as xs:string
+{
+    let $provider-id := u:create-provider-id($news-item)
+    return "/api/providers/" || $provider-id
+};
+
+(:~
+ : Generate an identifier for a news provider based on its domain name
+ : @param $news-item element of news
+ : @return a string contaning part of the md5 hash
+ :)
+declare function u:create-provider-id(
+    $news-item as element(news-item)
+) as xs:string
+{
+    let $link := u:extract-host-from-url($news-item/link)
+    let $id := substring(xdmp:md5($link), 1, 9)
+    return $id
+};
+
 (:~
  : Returns protocol + host from a given URL. This is should help
  : for the news providers to get their "home page" address.
