@@ -4,10 +4,11 @@ import module namespace u = "http://mr-utils" at "/src/lib/xquery/utils.xqm";
 declare variable $item as document-node() external;
 
 (: find items we want to record for a news provider :)
-let $link := u:extract-host-from-url($item/news-item/link)
-let $name := replace($item//provider, "&amp;", "&amp;amp;")
-let $id := substring(xdmp:md5($link), 1, 9)
-let $language := $item/news-item/language/text()
+let $news-item := $item/news-item
+let $link := u:extract-host-from-url($news-item/link)
+let $id := u:create-provider-id($news-item)
+let $name := replace($news-item/provider, "&amp;", "&amp;amp;")
+let $language := $news-item/language/text()
 let $path := "/providers/" || substring($id, 1, 2) || "/" || substring($id, 3) || ".xml"
 
 (: create the initial document for the news provider :)
