@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+        This file lists the sources to be used by the media-review news 
+        aggregator. Right now only RSS is recognized, but it's only logical
+        to also support Atom feeds, and Twitter/Facebook specific contents.
+-->
+<sources>
+    <source id="google-rss-ocde" type="rss">
+        <url>https://news.google.com/news/feeds?pz=1&amp;cf=all&amp;ned=us&amp;hl=en&amp;output=rss&amp;num=100&amp;q=ocde</url>
+        <!-- _aggregate means there is no unique provider for news items-->
+        <provider>_aggregate</provider>
+        <name>Google RSS news search for 'ocde'</name>
+    </source>
+    <source id="google-rss-oecd" type="rss">
+        <url>https://news.google.com/news/feeds?pz=1&amp;cf=all&amp;ned=us&amp;hl=en&amp;output=rss&amp;num=100&amp;q=oecd</url>
+        <provider>_aggregate</provider>
+        <name>Google RSS news search for 'oecd'</name>
+    </source>
+    <source id="oecd-rss-news-releases" type="rss">
+        <url>http://www.oecd.org/newsroom/index.xml</url>
+        <provider>oecd</provider>
+        <name>OECD Newsroom</name>
+    </source>
+    <source id="oecd-observer" type="rss">
+        <url>http://feeds.feedburner.com/OecdObserver</url>
+        <provider>oecd-observer</provider>
+        <name>OECD Observer</name>
+    </source>
+    <source id="oecd-observer" type="rss">
+        <url>http://oecdinsights.org/feed/</url>
+        <provider>oecd-insights</provider>
+        <name>OECD Insights blog</name>
+    </source>
+    
+    <!--
+    <source id="twitter-oecd" type="twitter">
+        
+    </source>
+    -->
+    <!--
+    <source id="facebook-oecd" type="facebook">
+        
+    </source>
+    -->
+</sources>
