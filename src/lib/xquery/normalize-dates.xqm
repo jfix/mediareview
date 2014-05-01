@@ -63,6 +63,7 @@ declare %private function f:fix-day-dd-mon-yyyy-hh-mm-ss-tz(
     let $time := if (string-length($parts[5]) = 7)
         then concat('0', $parts[5])
         else $parts[5]
+    (: $parts[6] can be "GMT", +0000, -00:00, "Z" ... :)
     let $tz :=
         if ($parts[6] = 'GMT')
         then ''
