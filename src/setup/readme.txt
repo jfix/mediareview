@@ -7,6 +7,8 @@ setup:
     /src/tasks/get-screenshot.xqy
     /src/tasks/detect-languages.xqy
     /src/tasks/extract-providers.xqy
+
+- enable collection lexicons
     
 ---------------
  xquery version "1.0-ml";
