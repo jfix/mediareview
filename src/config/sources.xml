@@ -18,7 +18,7 @@
     </source>
     <source id="oecd-rss-news-releases" type="rss">
         <url>http://www.oecd.org/newsroom/index.xml</url>
-        <provider>oecd</provider>
+        <provider>oecd-newsroom</provider>
         <name>OECD Newsroom</name>
     </source>
     <source id="oecd-observer" type="rss">
