@@ -9,8 +9,9 @@ xquery version "1.0-ml";
  :)
 
 module namespace api = "http://mr-api";
-import module namespace rxq="﻿http://exquery.org/ns/restxq" at "/lib/xquery/rxq.xqy";
 import module namespace json="http://marklogic.com/xdmp/json" at "/MarkLogic/json/json.xqy";
+import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-doc-2007-01.xqy";
+import module namespace rxq="﻿http://exquery.org/ns/restxq" at "/lib/xquery/rxq.xqy";
 import module namespace u = "http://mr-utils" at "/lib/xquery/utils.xqm";
 
 (:~
@@ -164,15 +165,51 @@ function api:status(
 };
 
 (:~
- : Returns XML or JSON document of news-item identified by $id
+ : Returns XML or JSON document of a provider as identified by $id.
+ : @TODO: add URLs of news items for a provider
+ : @param id as xs:string
+ : @param format as xs:string
+ : @return item in XML or JSON
+ :)
+declare
+    %rxq:path('/api/providers/([a-f0-9]+)\.?(xml|json)?')
+    %rxq:GET
+function api:provider(
+    $id as xs:string,
+    $ext as xs:string?
+) as item()
+{
+    let $provider := collection("id:" || $id)/provider
+    let $format := if ($ext) then $ext else "json"
+
+    return
+    (
+        if (not($provider))
+        then
+            (
+                xdmp:set-response-code(404, "Not found"),
+                "Not found - check item id"
+            )
+        else 
+            (
+                xdmp:set-response-code(200, "OK"),
+                u:set-response-header($format),
+                u:convert-provider($provider, $format)
+            )
+    )
+};
+
+(:~
+ : Returns XML, HTML or JSON document of news-item as identified by $id.
+ :
  :
  :)
 declare
-    %rxq:path('/api/news-items/([a-f0-9]+)\.(xml|json|html)')
+    %rxq:path('/api/news-items/([a-f0-9]+)\.?(xml|json|html)?')
     %rxq:GET
 function api:news-item(
     $id as xs:string,
-    $ext as xs:string
+    $ext as xs:string?
 ) as item()
 {
     let $res := cts:search(/news-item, 
@@ -181,10 +218,8 @@ function api:news-item(
                         cts:collection-query("news-item")
                     ))
                 )
-    let $config := json:config("custom")
-    let $_ := map:put($config, "ignore-attribute-names", ("query", "guid", "confidence", "time"))
-    let $_ := map:put($config, "ignore-element-names", ("full-html", "date", "normalized-date"))
-
+    let $format := if ($ext) then $ext else "json"
+    
     return
     (
         if (not($res))
@@ -196,44 +231,8 @@ function api:news-item(
         else 
             (
                 xdmp:set-response-code(200, "OK"),
-        
-                (: === HTML ==== :)
-
-                switch (lower-case($ext))
-                case "html" return
-                    (
-                        xdmp:set-response-content-type("text/html"),
-                        xdmp:xslt-invoke("/lib/xslt/item2html.xsl", $res)
-                    )
-                
-                (: === XML ==== :)
-                case "xml" return
-                    (
-                        xdmp:set-response-content-type("text/xml"),
-                        $res
-                    )
-                    
-                (: === JSON ==== :)
-                (: case "json" :)
-                default return
-                    (
-                        xdmp:set-response-content-type("application/json"),
-                     
-                        let $j := json:transform-to-json-object($res, $config)
-                        let $nm := map:get($j, "news-item")
-                        let $pm := map:new()
-                        
-                        let $provider-id := u:create-provider-id($res)
-                        
-                        let $_ := map:put($pm, "id", $provider-id)
-                        let $_ := map:put($pm, "name", map:get($nm, "provider"))
-                        let $_ := map:put($nm, "provider", $pm)
-                        let $_ := map:put($nm, "time", data($res/normalized-date/@time))
-                        let $_ := map:put($nm, "date", string($res/normalized-date))
-                        let $_ := map:put($nm, "screenshot", "/api/news-items/" || $res/@id || "/screenshot")
-                        
-                        return xdmp:to-json($j)
-                    )
+                u:set-response-header($format),
+                u:convert-news-item($res, $format)
             )
     )
 };
@@ -262,6 +261,82 @@ function api:screenshot(
             xdmp:http-get("http://placehold.it/800x400&amp;text=screenshot+not+yet+available")[2]
         )
     }            
+};
+
+(:~
+ : Returns a list of news items within a given time period.
+ : This time period can be defined using a certain number of parameters:
+ : - date=yyyy-mm-dd: returns news items for this specific date
+ : - since=n: returns news items between today and today - n days
+ : - from=yyyy-mm-dd, to=yyyy-mm-dd: returns items between (inclusive) these two dates
+ :
+ :
+ :
+ :)
+declare
+    %rxq:path('/api/news-items/?')
+    %rxq:GET
+function api:news-items(
+)
+{
+    (: acceptable query parameters:
+        - date=yyyy-mm-dd                   [default: current-date]
+        - since=duration-as-integer-days    [default: 1]
+        - from=yyyy-mm-dd and to=yyyy-mm-dd [defaults: from=current-date, to=current-date, equivalent of date]
+    :)
+    let $format := xdmp:get-request-field("format", "xml")
+    
+    let $specific-date := xs:date(xdmp:get-request-field("date"))
+    
+    let $since-param := xdmp:get-request-field("since", "0")
+    let $since := current-date() - xs:dayTimeDuration("P" || 
+        (if (functx:is-a-number($since-param)) then $since-param else 0) 
+        || "D")
+    
+    (: === start date === :)
+    let $from as xs:date := 
+        if ($specific-date instance of xs:date) 
+        then 
+            $specific-date
+        else
+            if ($since instance of xs:date)
+            then
+                $since
+            else
+                (: default: yesterday :)
+                xs:date(xdmp:get-request-field("from", xs:string(current-date() - xs:dayTimeDuration("P1D"))))
+    
+    (: === end date === :)
+    let $to as xs:date := 
+        if ($specific-date instance of xs:date)
+        then
+            $specific-date
+        else 
+            xs:date(xdmp:get-request-field("to", xs:string(current-date()) ))
+    
+    let $queries := (
+        cts:element-range-query(xs:QName("normalized-date"), ">=", $from),
+        cts:element-range-query(xs:QName("normalized-date"), "<=", $to)
+    )
+
+    let $items := cts:search(collection("news-item")/news-item, cts:and-query($queries))
+(:    let $_ := xdmp:log("ITEMS: " || count($items)):)
+    
+    return
+        (
+            xdmp:set-response-code(200, "OK"),
+            xdmp:set-response-encoding("UTF-8"),
+            u:set-response-header($format),
+            u:convert-news-items(
+                $items, 
+                map:new((
+                    map:entry("format", $format),
+                    map:entry("from", $from), 
+                    map:entry("to", $to), 
+                    map:entry("count", count($items))
+                ))
+            )
+        )
 };
 
 (:~
