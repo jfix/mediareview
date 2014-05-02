@@ -1,6 +1,13 @@
 xquery version "1.0-ml";
-import module namespace u = "http://mr-utils" at "/src/lib/xquery/utils.xqm";
 
+(:~
+ : This module gets called by another one and records
+ : a provider XML document (if this provider doesn't
+ : already exist).
+ :
+ :)
+ 
+import module namespace u = "http://mr-utils" at "/src/lib/xquery/utils.xqm";
 declare variable $item as document-node() external;
 
 (: find items we want to record for a news provider :)
@@ -20,11 +27,13 @@ let $doc := <provider id="{$id}">
 
 (: store the document of the news provider, unless it exists already :)
 return
-if (exists(collection("id:" || $id)))
+if (not(exists(collection("id:" || $id))))
     then
-        xdmp:log($name || " already exists, not saving again")
-    else
         (
-        xdmp:document-insert($path, $doc, (), ("provider", "id:"||$id, "language:"||$language)),
-        xdmp:log($name || " saved successfully at " || $path)
+            xdmp:document-insert($path, $doc, (), ("provider", "id:"||$id, "language:"||$language)),
+            xdmp:log($name || " saved successfully at " || $path),
+            xdmp:document-add-collections(xdmp:node-uri($item), ("provider-extracted"))
+            (: record event :)
         )
+    else ()
+
