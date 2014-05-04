@@ -16,5 +16,3 @@ for $item in collection("news-item")
             xdmp:invoke("/src/tasks/record-one-provider.xqy", map:entry("item", $item))
         else
             ()
-            (: xdmp:log($id || " is already there, ignoring.") :)
-
