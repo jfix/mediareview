@@ -175,12 +175,11 @@ declare function u:normalize-w3c-date(
  :  <message>3 news items have been inserted.</message>
  : </event>
  :
- : TODO: something more telling than an empty sequence?
  : @return empty-sequence()
  :)
 declare function u:record-event(
     $event as element(event)
-)
+) as empty-sequence()
 {
     let $id as xs:string := $event/@id
     let $uri := "/events/" || substring($id, 1, 2) || "/" || substring($id, 3) || ".xml"
@@ -200,13 +199,15 @@ declare function u:record-event(
 
 (:~
  : Create an event element with the necessary parameters
- :
- :
+ : @param $origin an agent responsible for the event
+ : @param $message indicating the what the event is about
+ : @param $payload not sure what this could be and how to handle it
+ : @return element(event)
  :)
 declare function u:create-event(
     $origin as xs:string,
     $message as xs:string,
-    $payload as item()*
+    $payload as element()*
 ) as element(event)
 {
     let $id := xdmp:hmac-sha1($secretkey, $origin || $message || xdmp:quote($payload) || string(current-dateTime()), "hex")
@@ -214,8 +215,10 @@ declare function u:create-event(
         <event id="{$id}">
             <when>{current-dateTime()}</when>
             <who>{$origin}</who>
+            <what>
+            { $payload }
+            </what>
             <message>{$message}</message>
-            { (: payload???? :) }
         </event>
 };
 
