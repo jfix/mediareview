@@ -30,7 +30,12 @@ return
 if (not(exists(collection("id:" || $id))))
     then
         (
-            xdmp:document-insert($path, $doc, (), ("provider", "id:"||$id, "language:"||$language)),
+            xdmp:document-insert(
+                $path, 
+                $doc, 
+                $u:default-permissions, 
+                ("provider", "id:"||$id, "language:"||$language)
+            ),
             xdmp:log($name || " saved successfully at " || $path),
             xdmp:document-add-collections(xdmp:node-uri($item), ("provider-extracted"))
             (: record event :)

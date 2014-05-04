@@ -1,6 +1,6 @@
 setup:
 - webdav
-- http
+- http (authentication: app-level, default-user: mr-end-user)
 - xdbc
 - tasks
     /src/tasks/rss-news.xqy
@@ -41,6 +41,43 @@ setup:
 - element-range-index of type date for normalized-date element
 - element-range-index of type string for language element
 - element-range-index of type string for provider element
+
+users
+-----
+two users:
+1) mr-backoffice-user
+--- mr-add-documents-role
+    xdmp:invoke execute privilege
+    any-collection execute privilege
+    xdbc:eval execute privilege (for use with oxygenxml only)
+    xdmp:http-post execute privilege
+    xdmp:filesystem-file (rss-news.xqy)
+    
+--- mr-delete-documents-role
+    xdmp:invoke execute privilege
+--- mr-read-documents-role
+
+2) mr-end-user
+--- mr-read-documents-role
+
+roles
+-----
+- mr-add-documents-role
+-- insert
+-- update
+-- read
+- mr-delete-documents-role
+-- delete
+-- read
+
+- mr-read-documents-role
+-- read
+
+
+--
+associate http server with mr-end-user
+--
+
 
 screenshot-as-a-service:
 - git submodule add git://github.com/fzaninotto/screenshot-as-a-service src/lib/screenshot-as-a-service

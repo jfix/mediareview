@@ -81,13 +81,12 @@ return
     then
         xdmp:log("item " || $id || " already exists, not re-inserting")
     else
-(:        $doc:)
     (
         xdmp:log("new item " || $id || " found, inserting"),
         xdmp:document-insert(
             $uri,
             $doc,
-            xdmp:default-permissions(),
+            $u:default-permissions,
             (
                 "id:" || $id, 
                 "news-item", 

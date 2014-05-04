@@ -12,6 +12,12 @@ declare namespace jb = "http://marklogic.com/xdmp/json/basic";
 (: to generate an identifier hash using hmac-sha1, I need to provide a secret :)
 declare variable $secretkey as xs:string := "not-so-secret-key";
 
+declare variable $default-permissions := (
+    xdmp:permission("mr-read-documents-role", "read"),
+    xdmp:permission("mr-add-documents-role", "update"),
+    xdmp:permission("mr-add-documents-role", "insert")
+);
+    
 (:~
  : Sets the HTTP response header based on a "file extension".
  : To be used (if necessary) before sending back news-item (or 
