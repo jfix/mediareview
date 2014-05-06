@@ -52,10 +52,13 @@ two users:
     xdbc:eval execute privilege (for use with oxygenxml only)
     xdmp:http-post execute privilege
     xdmp:filesystem-file (rss-news.xqy)
+    filesystem-access role (to read files in apps/assets)
     
 --- mr-delete-documents-role
     xdmp:invoke execute privilege
 --- mr-read-documents-role
+    xdmp:get-server-field (for rxq:rewrite)
+    xdmp:set-server-field (for rxq:rewrite)
 
 2) mr-end-user
 --- mr-read-documents-role
