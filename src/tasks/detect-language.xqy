@@ -45,6 +45,7 @@ xquery version "1.0-ml";
 
 import module namespace cfg = "http://mr-cfg" at "/src/config/settings.xqy";
 import module namespace json="http://marklogic.com/xdmp/json" at "/MarkLogic/json/json.xqy";
+import module namespace u = "http://mr-utils" at "/src/lib/xquery/utils.xqm";
 declare namespace jb = "http://marklogic.com/xdmp/json/basic";
 declare namespace xh = "xdmp:http";
 
@@ -78,12 +79,45 @@ try {
                     return
                        (
                        xdmp:document-add-collections($url, ("language-detected")),
-                       xdmp:node-insert-child($doc/news-item, <language confidence="{$confidence}">{$lang}</language>)
+                       xdmp:node-insert-child($doc/news-item, <language confidence="{$confidence}">{$lang}</language>),
+                       u:record-event(
+                             u:create-event(
+                                 "language-bot", 
+                                 "language successfully detected", 
+                                 (
+                                     <type>language-detected</type>,
+                                     <result>success</result>,
+                                     <language>{$lang}</language>,
+                                     <confidence>{$confidence}</confidence>,
+                                     <text>{$doc//text-only}</text>,
+                                     <link>{$item//link/text()}</link>,
+                                     <id>{$doc/@id}</id>,
+                                     <path>{$url}</path>
+                                 )
+                             )
+                         )
+
                        )
                 else
-                    xdmp:log("DETECTIONNOTRELIABLE: The language detection was not reliable for '" || $url || "', not using this result: " || xdmp:quote($res[2]))
-                    (:fn:error(QName("", "DETECTIONNOTRELIABLE"), "The language detection was not reliable for '" || $url || "', not using result."):)
+                (
+                    xdmp:log("DETECTIONNOTRELIABLE: The language detection was not reliable for '" || $url || "', not using this result: " || xdmp:quote($res[2])),
+                    u:record-event(
+                        u:create-event(
+                            "language-bot", 
+                            "language not detected", 
+                            (
+                                <type>language-detected</type>,
+                                <result>failure</result>,
+                                <text>{$doc//text-only}</text>,
+                                <link>{$item//link/text()}</link>,
+                                <id>{$doc/@id}</id>,
+                                <path>{$url}</path>
+                            )
+                        )
+                    )
 
+                    (:fn:error(QName("", "DETECTIONNOTRELIABLE"), "The language detection was not reliable for '" || $url || "', not using result."):)
+                )
 } catch($e) {
     xdmp:log("DETECTLANGUAGEERROR: "|| $e//*:message)
 (:    fn:error(QName("", "DETECTLANGUAGEERROR"), $e//*:message):)

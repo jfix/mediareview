@@ -95,5 +95,20 @@ return
                     tokenize($q, " ") ! concat("query:",.)
                 )
             )
+        ),
+        u:record-event(
+            u:create-event(
+                "news-bot", 
+                "news item successfully inserted into database", 
+                (
+                    <type>newsitem-inserted</type>,
+                    <result>success</result>,
+                    <id>{$id}</id>,
+                    <title>{$title}</title>,
+                    <provider-name>{ $provider }</provider-name>,
+                    <provider-id>{$provider-id}</provider-id>,
+                    <link>{ $link }</link>
+                )
+            )
         )
     )

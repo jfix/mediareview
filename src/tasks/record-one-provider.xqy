@@ -37,8 +37,20 @@ if (not(exists(collection("id:" || $id))))
                 ("provider", "id:"||$id, "language:"||$language)
             ),
             xdmp:log($name || " saved successfully at " || $path),
-            xdmp:document-add-collections(xdmp:node-uri($item), ("provider-extracted"))
-            (: record event :)
+            xdmp:document-add-collections(xdmp:node-uri($item), ("provider-extracted")),
+            u:record-event(
+                u:create-event(
+                    "provider-bot", 
+                    "provider successfully extracted", 
+                    (
+                        <type>provider-extracted</type>,
+                        <result>success</result>,
+                        <provider-name>{$name}</provider-name>,
+                        <provider-id>{$id}</provider-id>,
+                        <newsitem-id>{$news-item/@id}</newsitem-id>
+                    )
+                )
+            )
         )
     else ()
 
