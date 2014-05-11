@@ -92,3 +92,46 @@ rxq
 - git submodule add git://github.com/xquery/rxq src/lib/rxq
 - update of rewriter/error files
 - copy rxq-rewriter.xqy and rxq.xqy to /src/lib/xquery
+
+INSTALL PHANTOMJS
+=================
+http://phantomjs.org/download.html
+
+download latest linux binary
+
+extract binary into /opt/phantomjs/
+ln -s /opt/phantomjs/phantomjs /usr/local/bin/phantomjs
+
+INSTALL NODE
+============
+
+https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager
+
+For Debian Wheezy (7.0)
+Also installs npm
+
+Build from source
+-----------------
+
+sudo apt-get install python g++ make checkinstall fakeroot
+src=$(mktemp -d) && cd $src
+wget -N http://nodejs.org/dist/node-latest.tar.gz
+tar xzvf node-latest.tar.gz && cd node-v*
+./configure
+sudo fakeroot checkinstall -y --install=no --pkgversion $(echo $(pwd) | sed -n -re's/.+node-v(.+)$/\1/p') make -j$(($(nproc)+1)) install
+sudo dpkg -i node_*
+
+Uninstall
+---------
+
+sudo dpkg -r node
+
+
+git clone https://github.com/fzaninotto/screenshot-as-a-service.git
+npm install
+
+sudo npm -g install nodemon
+sudo nom -g install forever
+
+~/screenshot-as-a-service$ sudo forever start -l log.file -o out.file -e error.file app.js 
+~/screenshot-as-a-service$ sudo forever stop app.js
