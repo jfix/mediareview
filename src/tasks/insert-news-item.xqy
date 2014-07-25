@@ -103,7 +103,7 @@ return
                 (
                     <type>newsitem-inserted</type>,
                     <result>success</result>,
-                    <id>{$id}</id>,
+                    <newsitem-id>{$id}</newsitem-id>,
                     <title>{$title}</title>,
                     <provider-name>{ $provider }</provider-name>,
                     <provider-id>{$provider-id}</provider-id>,
