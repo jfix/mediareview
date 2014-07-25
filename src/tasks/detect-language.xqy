@@ -50,10 +50,10 @@ declare namespace jb = "http://marklogic.com/xdmp/json/basic";
 declare namespace xh = "xdmp:http";
 
 (: url of the XML news item to which we need to add a collection :)
-declare variable $url as xs:string external;
+declare variable $item as element(news-item) external;
 
 try {
-    let $doc := document($url)
+    let $url := xdmp:node-uri($item)
     
     (: It turned out to work better, for larger texts, to POST the request,
        although a GET works too, in theory. :)
@@ -61,7 +61,7 @@ try {
         <options xmlns="xdmp:http">
             <headers><content-type>application/x-www-form-urlencoded</content-type></headers>
         </options>, 
-        text{ "key=" || $cfg:detectlanguage-apikey || "&amp;q=" || $doc//text-only }
+        text{ "key=" || $cfg:detectlanguage-apikey || "&amp;q=" || $item//text-only }
     )
     let $response-code := data($res[1]//xh:code)
 
@@ -70,16 +70,18 @@ try {
         then
             fn:error(QName("", "URLERROR"), $response-code || ": " || $res[1]//xh:message || " - " || $url)
         else
-            let $item := json:transform-from-json($res[2])//jb:json[jb:isReliable ='true'][1]
+            let $result-item := json:transform-from-json($res[2])//jb:json[jb:isReliable ='true'][1]
             return
-                if ($item)
+                if ($result-item)
                 then
-                    let $lang := $item/jb:language/text()
-                    let $confidence := $item/jb:confidence/text()
+                    let $lang := $result-item/jb:language/text()
+                    let $confidence := $result-item/jb:confidence/text()
                     return
                        (
                        xdmp:document-add-collections($url, ("language-detected")),
-                       xdmp:node-insert-child($doc/news-item, <language confidence="{$confidence}">{$lang}</language>),
+                       
+                       (: if using $item directly, MarkLogic will complain about not being able to "update external nodes" :)
+                       xdmp:node-insert-child(document(xdmp:node-uri($item))/*, <language confidence="{$confidence}">{$lang}</language>),
                        u:record-event(
                              u:create-event(
                                  "language-bot", 
@@ -89,9 +91,9 @@ try {
                                      <result>success</result>,
                                      <language>{$lang}</language>,
                                      <confidence>{$confidence}</confidence>,
-                                     <text>{$doc//text-only}</text>,
+                                     <text>{$item//text-only}</text>,
                                      <link>{$item//link/text()}</link>,
-                                     <id>{$doc/@id}</id>,
+                                     <newsitem-id>{data($item/@id)}</newsitem-id>,
                                      <path>{$url}</path>
                                  )
                              )
@@ -108,9 +110,9 @@ try {
                             (
                                 <type>language-detected</type>,
                                 <result>failure</result>,
-                                <text>{$doc//text-only}</text>,
+                                <text>{$item//text-only}</text>,
                                 <link>{$item//link/text()}</link>,
-                                <id>{$doc/@id}</id>,
+                                <newsitem-id>{data($item/@id)}</newsitem-id>,
                                 <path>{$url}</path>
                             )
                         )
