@@ -10,19 +10,13 @@ for $i in cts:search(/news-item, cts:and-not-query(
     )
 )
 
-    let $doc-url := xdmp:node-uri($i)
-    
-    (: make double-sure not to re-take snapshots :)
-    let $has-screenshot := ("screenshot-saved" = xdmp:document-get-collections(xdmp:node-uri($i)))
-    
-    return 
-        if (not($has-screenshot))
+    let $_ := xdmp:log("GET-SCREENSHOTS.XQY -- " || xdmp:node-uri($i))
+    return
+        if (not(doc-available(replace(xdmp:node-uri($i), "item.xml", "screenshot.png"))))
         then
             xdmp:invoke("/src/tasks/take-one-screenshot.xqy", 
                 (
-                    map:new(map:entry("path", replace($doc-url, "item.xml", "screenshot.png"))),
-                    map:new(map:entry("link", string($i//link))),
-                    map:new(map:entry("url", $doc-url))        
+                    map:entry("item", $i)
                 )
             )
         else ()
