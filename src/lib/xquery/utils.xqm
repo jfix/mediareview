@@ -8,6 +8,8 @@ import module namespace mem="http://xqdev.com/in-mem-update" at "/MarkLogic/apps
 import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-doc-2007-01.xqy";
 import module namespace nd="http://marklogic.com/appservices/utils/normalize-dates" at "normalize-dates.xqm";
 declare namespace jb = "http://marklogic.com/xdmp/json/basic";
+declare namespace xh = "xdmp:http";
+declare namespace h = "http://www.w3.org/1999/xhtml";
 
 (: to generate an identifier hash using hmac-sha1, I need to provide a secret :)
 declare variable $secretkey as xs:string := "not-so-secret-key";
@@ -17,7 +19,130 @@ declare variable $default-permissions := (
     xdmp:permission("mr-add-documents-role", "update"),
     xdmp:permission("mr-add-documents-role", "insert")
 );
+
+(:~
+ : These options are used by xdmp:tidy to clean the retrieved HTML. Not sure 
+ : it needs to be a global variable.
+ :)
+declare variable $tidy-options := <options xmlns="xdmp:tidy">
+    <new-blocklevel-tags>section, header, time, figure, nav, article</new-blocklevel-tags>
+    <bare>yes</bare>
+    <clean>yes</clean>
+    <hide-comments>yes</hide-comments>
+</options>;
+
+declare variable $http-get-options := <options xmlns="xdmp:http">
+    <verify-cert>false</verify-cert>
+</options>;
+
+(:~
+ : Returns the contents of an HTML page if possible.
+ : Resolves 301/302 redirects by recursively calling
+ : this function with the <location> header
+ :
+ :)
+declare function u:http-get(
+    $url as xs:string,
+    $options as node()?
+) as item()?
+{
+    let $final-url := u:http-get-url($url)
+    return
+        if (starts-with($final-url, "http"))
+        then
+                let $res := xdmp:http-get($final-url, $http-get-options)
+                let $code := data($res[1]//xh:code)
+                let $_ := xdmp:log("--------- " || $code || ": content retrieval response code: " || $final-url)        
+                let $content := xdmp:tidy($res[2], $tidy-options)[2]
+                let $content := mem:node-delete($content//h:script | $content//h:style)
+                return $content
+        else
+            ()
+            
+            (:error handling:)
+        (:
+            get HEAD
+            get xh:response/xh:code
+            if code is 200
+                GET conents
+                check node type
+                    if not is element/document node
+                        tidy
+                        remove script and styles
+                        unquote
+                    return document/element
+                    
+            if code is between 299 and 399
+                get xh:response//xh:location
+                call u:get-http()
+        :)
+};
+
+(:~
+ : Returns the "final URL" (i.e. following 301 and 302 redirect requests)
+ : @param $url xs:string containing the initial URL
+ : @return xs:string containing the final URL, or an error message
+ :)
+declare function u:http-get-url(
+    $url as xs:string
+) as xs:string?
+{
+    let $head-res := try { xdmp:http-get($url, $http-get-options) } catch($e) { xdmp:log("u:http-get-url() - for " || $url || " - error: " || $e//message) }
+    let $head-code := $head-res//xh:code
+    let $location := $head-res//xh:location
     
+    return
+        try {
+            let $head-location := 
+                if ($location)
+                then
+                    (: Location header should be absolute, but some servers set relative locations,
+                       according to a new HTTP spec, that may be acceptable:
+                       http://webmasters.stackexchange.com/questions/31274/what-are-the-consequences-for-using-relative-location-headers?answertab=votes#tab-top
+                    :)
+                    if (not(starts-with($location, 'http')))
+                    then
+                        u:get-host-from-url($url) || "/" || replace($location, "^/+", "")
+                    else
+                        $location
+                else
+                    ()
+                        
+            return
+                switch($head-code)
+                case 200
+                    return
+                        if ($head-location)
+                        then
+                            u:http-get-url($head-location)
+                        else
+                            $url
+                case 301
+                    return 
+                        if ($head-location)
+                        then
+                            u:http-get-url($head-location)
+                        else
+                            xdmp:log("u:http-get-url() - Error: no location header supplied in 301 response for " || $url)
+                case 302
+                    return 
+                        if ($head-location)
+                        then
+                            u:http-get-url($head-location)
+                        else
+                            xdmp:log("u:http-get-url() - Error: no location header supplied in 302 response for " || $url)
+                case 404
+                case 500
+                    return 
+                        xdmp:log("u:http-get-url() - Error " || $head-code || " for " || $url)
+                default 
+                    return 
+                        xdmp:log("u:http-get-url() - Error " || xdmp:quote($head-res) || " for " || $url)
+        } catch($e) {
+           xdmp:log("u:http-get-url() - Error " || $e//message || " - url: " || $url)
+        }
+ };
+
 (:~
  : Sets the HTTP response header based on a "file extension".
  : To be used (if necessary) before sending back news-item (or 
@@ -35,8 +160,15 @@ declare function u:set-response-header(
     default (:case "xml":)  return xdmp:set-response-content-type("text/xml")
 };
 
+(:~
+ : Takes a sequence of news-item elements and returns them in another format.
+ : Currently possible formats: JSON, HTML, XML.
+ : @param $items element(news-item)+ a sequence of 1 or more news items
+ : @param $params map:map contaning these key/value pairs: format, from, to, count
+ : @return a wrapper item containing the converted news items
+ :)
 declare function u:convert-news-items(
-    $items as element(news-item)*,
+    $items as element(news-item)+,
     $params as map:map
 ) as item()
 {
@@ -115,8 +247,10 @@ declare function u:convert-news-item(
 
 (:~
  : Returns an XML element or a JSON object (depending on the supplied
- : format) for a news provider. As a bonus it will also
- :
+ : format) for a news provider. As a bonus it will also list the newsitem ids
+ : @param $provider element(provider) the XML provider root element
+ : @param $format xs:string the desired output format, can be one of json or xml
+ : @return an XML or JSON item
  :)
 declare function u:convert-provider(
     $provider as element(provider),
@@ -124,7 +258,7 @@ declare function u:convert-provider(
 ) as item()
 {
     let $config := json:config("custom")
-    let $news-item-urls := (collection("news-item")/news-item[provider[./@id=$provider/@id]]/@id) 
+    let $news-item-urls := (collection("news-item")/news-item[provider[./@id = $provider/@id]]/@id) 
         ! u:create-news-item-url(., $format)
 
     return
@@ -183,7 +317,7 @@ declare function u:record-event(
 {
     let $id as xs:string := $event/@id
     let $uri := "/events/" || substring($id, 1, 2) || "/" || substring($id, 3) || ".xml"
-    let $type := ""
+    let $type := $event/what/type/string()
     let $origin as xs:string := $event/who/text()
     
     return
@@ -245,6 +379,14 @@ declare function u:provider-url(
 {
     let $provider-id := u:create-provider-id($news-item)
     return "/api/providers/" || $provider-id
+};
+
+declare function u:get-host-from-url(
+    $url as xs:string
+) as xs:string?
+{
+    let $t := tokenize($url, '[/\?]')
+    return string-join($t[1 to 3], "/")
 };
 
 (:~
