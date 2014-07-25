@@ -14,6 +14,35 @@ import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/f
 import module namespace rxq="﻿http://exquery.org/ns/restxq" at "/lib/xquery/rxq.xqy";
 import module namespace u = "http://mr-utils" at "/lib/xquery/utils.xqm";
 
+declare
+    %rxq:path('/api/events')
+    %rxq:GET
+    %rxq:produces('application/json')
+function api:events(
+
+)
+{
+    (
+        xdmp:set-response-code(200, "OK"), 
+        xdmp:to-json( 
+            for $e in (collection("event")/event)[1 to 100]
+                let $id as xs:string := $e/@id
+                let $dateTime as xs:dateTime := $e/when
+                let $message as xs:string := $e/message
+                let $result as xs:string := $e/what/result
+                let $newsitem-id as xs:string := $e/what/newsitem-id
+                return 
+                        map:new((
+                            map:entry("id", $id), 
+                            map:entry("dateTime", $dateTime), 
+                            map:entry("message", $message),
+                            map:entry("newsitem-id", $newsitem-id),
+                            map:entry("result", $result)
+                        ))
+        ) 
+    )
+};
+
 (:~
  : Return a JSON array containing provider information.
  : TODO: add number of news-items per provider.
@@ -110,12 +139,14 @@ function api:status(
     let $total-number-items := count(collection("news-item"))
     let $items-missing-screenshot := count(cts:search(/news-item, cts:and-not-query(cts:collection-query("news-item"), cts:collection-query("screenshot-saved"))))
     let $items-missing-language := count(cts:search(/news-item, cts:and-not-query(cts:collection-query("news-item"), cts:collection-query("language-detected"))))
+    let $items-missing-content := count(cts:search(/news-item, cts:and-not-query(cts:collection-query("news-item"), cts:collection-query("content-retrieved"))))
     
     let $general := map:new((
             map:entry("time-stamp", current-dateTime()),
             map:entry("items-total", $total-number-items),
             map:entry("items-missing-screenshot", $items-missing-screenshot),
-            map:entry("items-missing-language", $items-missing-language)
+            map:entry("items-missing-language", $items-missing-language),
+            map:entry("items-missing-content", $items-missing-content)
         ))
     let $screenshots := map:new((
         (: add 
@@ -237,6 +268,33 @@ function api:news-item(
     )
 };
 
+declare
+    %rxq:path('/api/news-items/([a-f0-9]+)/content')
+    %rxq:GET
+    %rxq:produces('text/html')
+function api:content(
+    $id as xs:string
+) as item()
+{
+   try {
+        (
+            xdmp:set-response-code(200, "OK"),
+            document(replace(xdmp:node-uri(collection("id:"||$id)[1]), "item.xml", "contents.html"))
+        )
+    } catch($e) {
+        (
+            xdmp:set-response-code(404, "Not found"),
+            <html>
+            <body>
+                here should be content but there isn't any yet<br/>
+                you can attempt to force retrieval by clicking this button:<br/>
+                ...
+            </body>
+            </html>
+        )
+    }   
+};
+
 (:~
  : Returns screenshot of news-item identified by $id, or placeholder image otherwise
  : param $id string identifying the news item
@@ -350,10 +408,12 @@ function api:test-page()
 {
 xdmp:set-response-code(200, "OK"),
 <html>
-    <head></head>
+    <head>
+        <title>mr-test</title>
+    </head>
     <body>
         <p>{
-            count(collection("news-item")//news-item)
+            count(collection("news-item"))
             } items
             
             - {count(cts:search(/news-item, cts:and-not-query(
@@ -372,17 +432,21 @@ xdmp:set-response-code(200, "OK"),
                 ))
             } 
             not yet language-detected
+            
+            - { count(collection("content-retrieved")) }
+            
+            content items
         </p>
         <hr/>
         <div>
             <ul>{
-            for $item in collection("news-item")//news-item
+            for $item in (collection("news-item")//news-item)[1 to 1000]
             order by xs:date($item/normalized-date) descending, xs:time($item/normalized-date/@time) descending
             return 
                 <li>
                     {$item/date}: 
                     
-                    {if ($item/language) then $item/language || " - " else ()}
+                    {if ($item/language) then $item/language[1] || " - " else ()}
                     
                     <a href="{$item/link}">{ $item/title || " - " || $item/provider}</a>
                     -
@@ -391,6 +455,13 @@ xdmp:set-response-code(200, "OK"),
                         <a href="{"/api/news-items/" || $item/@id || "/screenshot"}">screenshot</a>
                      else 
                         xdmp:node-uri($item)
+                    }
+                    -
+                    {if (("content-retrieved" = xdmp:document-get-collections(xdmp:node-uri($item))))
+                     then
+                        <a href="{"/api/news-items/" || $item/@id || "/content"}">content</a>
+                     else 
+                        "[no content]"
                     }
                 </li>
             }</ul>
