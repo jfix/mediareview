@@ -19,14 +19,13 @@ xquery version "1.0-ml";
 import module namespace utils = "http://mr-utils" at "/src/lib/xquery/utils.xqm";
 
 for $i in (collection("news-item")/news-item[not(language)])[1 to 100]
-    let $doc-url := xdmp:node-uri($i)
-    let $_ := xdmp:log("DETECT LANGUAGE FOR THIS ITEM: " || $doc-url)
+    let $_ := xdmp:log("DETECT LANGUAGE FOR THIS ITEM: " || xdmp:node-uri($i))
     
     return
         if (utils:detectlanguage-api-requests-remaining())
         then
             (
-                xdmp:invoke("/src/tasks/detect-language.xqy", (map:new(map:entry("url", $doc-url)))),
+                xdmp:invoke("/src/tasks/detect-language.xqy", (map:new(map:entry("item", $i)))),
                 (: wait a couple of seconds before continuing, you never know ... :)
                 xdmp:sleep(2000)
             )
