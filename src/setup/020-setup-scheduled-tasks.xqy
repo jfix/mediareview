@@ -59,9 +59,21 @@ let $detect-languages-task := admin:group-hourly-scheduled-task(
    $task-priority
 )
 
+let $get-contents-task := admin:group-hourly-scheduled-task(
+   "/src/tasks/get-contents.xqy",
+   $task-root,
+   1,
+   45,
+   $task-database,
+   $task-modules,
+   $task-user,
+   xdmp:host(),
+   $task-priority
+)
 let $config := admin:group-add-scheduled-task($config, $task-group, $detect-languages-task)
 let $config := admin:group-add-scheduled-task($config, $task-group, $extract-providers-task)
 let $config := admin:group-add-scheduled-task($config, $task-group, $get-news-task)
 let $config := admin:group-add-scheduled-task($config, $task-group, $get-screenshots-task)
+let $config := admin:group-add-scheduled-task($config, $task-group, $get-contents-task)
 
 return admin:save-configuration-without-restart($config)
