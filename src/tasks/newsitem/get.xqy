@@ -40,7 +40,7 @@ return
             if (not(exists(collection("id:" || $id))))
             then
                 xdmp:invoke(
-                    "/src/tasks/insert-news-item.xqy", 
+                    "/src/tasks/newsitem/insert.xqy", 
                     (
                         map:entry("item", $item),
                         map:entry("channel-title", $d//channel/title/text()),

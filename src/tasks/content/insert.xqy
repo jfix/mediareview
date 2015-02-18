@@ -1,7 +1,7 @@
 xquery version "1.0-ml";
 
 (:~
- : This module is spawned from the get-contents.xqy module
+ : This module is spawned from the @tasks/content/get.xqy@ module
  : which itself is launched periodically by the Task Scheduler.
  : Its purpose is to retrieve the HTML contents as such, to tidy
  : it up and to store it in the database for future use (like a

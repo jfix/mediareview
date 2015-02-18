@@ -13,6 +13,6 @@ for $item in collection("news-item")
     return
         if (not(exists(collection("id:" || $id))))
         then
-            xdmp:invoke("/src/tasks/record-one-provider.xqy", map:entry("item", $item))
+            xdmp:invoke("/src/tasks/provider/insert.xqy", map:entry("item", $item))
         else
             ()

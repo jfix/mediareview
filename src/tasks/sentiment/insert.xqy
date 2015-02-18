@@ -1,46 +1,48 @@
 xquery version "1.0-ml";
 
 (:
-    This module is called via invoke from detect-languages.xqy (note 
-    the plural form).
+    This module is called via invoke from @tasks/sentiment/get.xqy@.
     
     It expects one parameter:
     - $url: the URL of the news item document
     
-    It will call the detectlanguage.com API and extract the language from 
-    the returned results. If a language could be detected, it will do
+    It will call the api.uclassify.com API and attempt to determine the 
+    sentiment (positive or negative) based on either the RSS snippet, or, 
+    preferably, if it exists, the contents as extracted by the readibility 
+    API.
+    
+    If a sentiment could be detected, it will do
     two things:
-    - insert a <language confidence="[score]">[id]</language> as last child
+    - insert a <sentiment confidence="[score]">[id]</sentiment> as last child
       of the <news-item> element
-    - add the collection "language-detected" to the document
+    - add the collections "sentiment-detected" and 
+      "sentiment:positive" or "sentiment:negative: or "sentiment:undecided"
+      to the document.
     
     If it cannot connect to the API, or if the results are no reliable
     errors are returned.
     
-    The result returned by the API may look like this (usually, the 
-    detections array contains just one object):
+    The result returned by the API may look like this:
 
-    {
-        "data":{
-            "detections":[
-                {
-                    "language":"ko",
-                    "isReliable":true,
-                    "confidence":36.74
-                },
-                {
-                    "language":"en",
-                    "isReliable":false,
-                    "confidence":0.01
-                },
-                {
-                    "language":"hu",
-                    "isReliable":false,
-                    "confidence":0.01
-                }
-            ]
-        }
-    }
+    <uclassify xmlns="http://api.uclassify.com/1/ResponseSchema" version="1.01">
+        <status success="true" statusCode="2000" />
+        <readCalls>
+            <classify id="cls1">
+                <classification textCoverage="1">
+                    <class className="negative" p="0.501319" />
+                    <class className="positive" p="0.498681" />
+                </classification>
+            </classify>
+        </readCalls>
+    </uclassify>
+    
+    More info on the API: http://www.uclassify.com/XmlApiDocumentation.aspx
+:)
+
+(:
+        
+        TODO TODO TODO
+
 :)
 
 import module namespace cfg = "http://mr-cfg" at "/src/config/settings.xqy";
@@ -50,7 +52,8 @@ declare namespace jb = "http://marklogic.com/xdmp/json/basic";
 declare namespace xh = "xdmp:http";
 
 (: url of the XML news item to which we need to add a collection :)
-declare variable $item as element(news-item) external;
+declare variable $id as xs:string external;
+declare variable $item as element(news-item) := collection("id:" || $id)/news-item;
 
 try {
     let $url := xdmp:node-uri($item)

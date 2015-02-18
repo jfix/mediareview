@@ -1,7 +1,7 @@
 xquery version "1.0-ml";
 
 (:~
- : This module is called by @get-screenshots.xqy@ (which is a scheduled task).
+ : This module is called by @gtasks/screenshot/get.xqy@ (which is a scheduled task).
  : If the resource identified by $link is an HTML page (and not a PDF or a
  : non-existing page), then a screenshot will be taken by the screenshot-as-a-
  : service.
@@ -77,6 +77,12 @@ try {
 } catch($e) {
     xdmp:log("The following error occurred in take-one-screenshot.xqy: " || $e//*:message),
     xdmp:log("Additional information from take-one-screenshot.xqy: link: " || string($link) || " - id: " || $id),
+    xdmp:document-add-collections($url, ("screenshot-failed")),
+    
+    (: 
+        given that we also set the collection "screenshot-failed" 
+        there will be just one failure event recorded.
+    :)
     u:record-event(
         u:create-event(
             "screenshot-bot", 

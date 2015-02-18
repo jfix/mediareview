@@ -33,8 +33,8 @@ for $i in (cts:search(/news-item, cts:and-not-query(
                     )
                 else
                     (
-                        xdmp:log("get-contents.xqy - Invoking insert-content-item.xqy for " || $i/@id || " at " || $i//link),
-                        xdmp:invoke("/src/tasks/insert-content-item.xqy", 
+                        xdmp:log("tasks/content/get.xqy - Invoking insert-content-item.xqy for " || $i/@id || " at " || $i//link),
+                        xdmp:invoke("/src/tasks/content/insert.xqy", 
                             (
                                 map:entry("item", $i)  
                             )

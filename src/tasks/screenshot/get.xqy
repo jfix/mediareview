@@ -3,10 +3,11 @@ import module namespace cfg = "http://mr-cfg" at "/src/config/settings.xqy";
 declare namespace xh = "xdmp:http";
 
 (: get all news items that don't have a "screenshot-saved" collection :)
-for $i in cts:search(/news-item, cts:and-not-query(
-    cts:collection-query("news-item")
-    ,
-    cts:collection-query("screenshot-saved")
+for $i in cts:search(/news-item, 
+    cts:and-not-query(
+        cts:collection-query("news-item")
+        ,
+        cts:collection-query(("screenshot-saved"(:, "screenshot-failed":)))
     )
 )
 
@@ -14,7 +15,7 @@ for $i in cts:search(/news-item, cts:and-not-query(
     return
         if (not(doc-available(replace(xdmp:node-uri($i), "item.xml", "screenshot.png"))))
         then
-            xdmp:invoke("/src/tasks/take-one-screenshot.xqy", 
+            xdmp:invoke("/src/tasks/screenshot/insert.xqy", 
                 (
                     map:entry("item", $i)
                 )

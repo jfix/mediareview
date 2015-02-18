@@ -2,8 +2,8 @@ xquery version "1.0-ml";
 
 (:~
  : This module gets called by another one and records
- : a provider XML document (if this provider doesn't
- : already exist).
+ : a provider XML document (unless provider already  
+ : exist).
  :
  :)
  

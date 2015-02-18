@@ -4,7 +4,7 @@ import module namespace admin = "http://marklogic.com/xdmp/admin"  at "/MarkLogi
 
 let $config := admin:get-configuration()
 
-let $task-root := "/Users/jakob/Projects/mediareview/"
+let $task-root := xdmp:modules-root()
 let $task-database := xdmp:database()
 let $task-modules := 0 (: file system:)
 let $task-user := xdmp:user("mr-backoffice-user")
@@ -12,7 +12,7 @@ let $task-priority := "normal"
 let $task-group := admin:group-get-id($config, "Default")
 
 let $get-news-task := admin:group-hourly-scheduled-task(
-   "/src/tasks/rss-news.xqy",
+   "/src/tasks/newsitem/get.xqy",
    $task-root,
    1,
    20,
@@ -24,7 +24,7 @@ let $get-news-task := admin:group-hourly-scheduled-task(
 )
 
 let $extract-providers-task := admin:group-hourly-scheduled-task(
-   "/src/tasks/extract-providers.xqy",
+   "/src/tasks/provider/get.xqy",
    $task-root,
    1,
    25,
@@ -35,8 +35,20 @@ let $extract-providers-task := admin:group-hourly-scheduled-task(
    $task-priority
 )
 
+let $get-contents-task := admin:group-hourly-scheduled-task(
+   "/src/tasks/content/get.xqy",
+   $task-root,
+   1,
+   45,
+   $task-database,
+   $task-modules,
+   $task-user,
+   xdmp:host(),
+   $task-priority
+)
+
 let $get-screenshots-task := admin:group-hourly-scheduled-task(
-   "/src/tasks/get-screenshots.xqy",
+   "/src/tasks/screenshot/get.xqy",
    $task-root,
    1,
    30,
@@ -48,7 +60,7 @@ let $get-screenshots-task := admin:group-hourly-scheduled-task(
 )
 
 let $detect-languages-task := admin:group-hourly-scheduled-task(
-   "/src/tasks/detect-languages.xqy",
+   "/src/tasks/language/get.xqy",
    $task-root,
    1,
    40,
@@ -59,21 +71,40 @@ let $detect-languages-task := admin:group-hourly-scheduled-task(
    $task-priority
 )
 
-let $get-contents-task := admin:group-hourly-scheduled-task(
-   "/src/tasks/get-contents.xqy",
+(:
+let $get-sentiments-task := admin:group-hourly-scheduled-task(
+   "/src/tasks/sentiment/get.xqy",
    $task-root,
    1,
-   45,
+   50,
    $task-database,
    $task-modules,
    $task-user,
    xdmp:host(),
    $task-priority
 )
+:)
+
+(:
+let $get-concepts-task := admin:group-hourly-scheduled-task(
+   "/src/tasks/concept/get.xqy",
+   $task-root,
+   1,
+   55,
+   $task-database,
+   $task-modules,
+   $task-user,
+   xdmp:host(),
+   $task-priority
+)
+:)
+
 let $config := admin:group-add-scheduled-task($config, $task-group, $detect-languages-task)
 let $config := admin:group-add-scheduled-task($config, $task-group, $extract-providers-task)
 let $config := admin:group-add-scheduled-task($config, $task-group, $get-news-task)
 let $config := admin:group-add-scheduled-task($config, $task-group, $get-screenshots-task)
 let $config := admin:group-add-scheduled-task($config, $task-group, $get-contents-task)
+(:let $config := admin:group-add-scheduled-task($config, $task-group, $get-sentiments-task):)
+(:let $config := admin:group-add-scheduled-task($config, $task-group, $get-concepts-task):)
 
 return admin:save-configuration-without-restart($config)
