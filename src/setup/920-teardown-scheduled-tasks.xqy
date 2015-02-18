@@ -8,8 +8,5 @@ let $task-group := admin:group-get-id($config, "Default")
 let $tasks := admin:group-get-scheduled-tasks($config, $task-group)[gr:task-path[starts-with(., "/src/tasks")]/text()]
 let $config := admin:group-delete-scheduled-task($config, $task-group, $tasks)
 
-return (
-    admin:save-configuration-without-restart($config)
-    ,
-    $tasks
-    )
+return admin:save-configuration-without-restart($config)
+    
