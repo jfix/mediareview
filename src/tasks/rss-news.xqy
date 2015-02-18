@@ -11,18 +11,23 @@ xquery version "1.0-ml";
 declare namespace xh = "xdmp:http";
 
 (: where to find the definitions of the sources of information :)
-let $sources := xdmp:unquote(xdmp:filesystem-file( xdmp:modules-root() || "/src/config/sources.xml"))/sources/source
+let $sources := xdmp:unquote(xdmp:filesystem-file( xdmp:modules-root() || "src/config/sources.xml"))/sources/source
 let $dt := current-dateTime()
 
 for $s in $sources
     let $u as xs:string := $s/url
     let $p as xs:string := $s/provider
 
-    let $r := xdmp:http-get($u)
+    let $r := xdmp:http-get(
+        $u,
+        <options xmlns="xdmp:http-get">
+           <format xmlns="xdmp:document-get">xml</format>
+        </options>
+    )
     let $d := $r[2]
     let $h := $r[1]
-
-    let $_ := xdmp:log("rss-news.xqy: " || $p || ": " || $h//xh:code/text() || " " || $h//xh:message/text() || " -- " || count($d//item) || " items retrieved.")
+    
+    let $_ := xdmp:log("rss-news.xqy: URL: " || $u || " - PROVIDER: " || $p || ": " || $h//xh:code/text() || " " || $h//xh:message/text() || " -- " || count($d//item) || " items retrieved.")
     
 return 
     
@@ -32,10 +37,8 @@ return
         let $id := substring(xdmp:md5($guid), 1, 7)
         
         return
-            if (exists(collection("id:" || $id)))
+            if (not(exists(collection("id:" || $id))))
             then
-                xdmp:log("item " || $id || " already exists, not re-inserting")
-            else
                 xdmp:invoke(
                     "/src/tasks/insert-news-item.xqy", 
                     (
@@ -46,4 +49,5 @@ return
                         map:entry("current-dateTime", $dt)
                     )
                 )
-                
+            else
+                ()
