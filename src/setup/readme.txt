@@ -49,6 +49,7 @@ password: password (stupid, but not actually used i think)
     xdmp:invoke execute privilege
     any-collection execute privilege
     xdbc:eval execute privilege (for use with oxygenxml only)
+    xdbc:eval-in execute privilege (this was required for the 'remote media-review')
     xdmp:http-post execute privilege
     xdmp:filesystem-file (rss-news.xqy)
     filesystem-access role (to read files in apps/assets)
@@ -121,12 +122,6 @@ Database Documents settings
 
 
 ------------------------------------------------------------------------------------------
-
-screenshot-as-a-service:
-- git submodule add git://github.com/fzaninotto/screenshot-as-a-service src/lib/screenshot-as-a-service
-- cd src/lib/screenshot-as-a-service
-- npm install
-- nodemon app.js
 
 rxq
 - git submodule add git://github.com/xquery/rxq src/lib/rxq

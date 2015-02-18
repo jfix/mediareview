@@ -11,9 +11,12 @@ xquery version "1.0-ml";
 module namespace api = "http://mr-api";
 import module namespace json="http://marklogic.com/xdmp/json" at "/MarkLogic/json/json.xqy";
 import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-doc-2007-01.xqy";
-import module namespace rxq="﻿http://exquery.org/ns/restxq" at "/lib/xquery/rxq.xqy";
-import module namespace u = "http://mr-utils" at "/lib/xquery/utils.xqm";
+import module namespace u = "http://mr-utils" at "/src/lib/xquery/utils.xqm";
+import module namespace rxq = "http://exquery.org/ns/restxq" at "/src/lib/xquery/rxq.xqy";
 
+(:~
+ : Return the last XXX (currently 100) events in a JSON array
+ :)
 declare
     %rxq:path('/api/events')
     %rxq:GET
@@ -22,24 +25,35 @@ function api:events(
 
 )
 {
+    let $number-of-events := 100
+    let $events := (collection("event")/event)[1 to $number-of-events]
+    
+    return
     (
-        xdmp:set-response-code(200, "OK"), 
-        xdmp:to-json( 
-            for $e in (collection("event")/event)[1 to 100]
-                let $id as xs:string := $e/@id
-                let $dateTime as xs:dateTime := $e/when
-                let $message as xs:string := $e/message
-                let $result as xs:string := $e/what/result
-                let $newsitem-id as xs:string := $e/what/newsitem-id
-                return 
-                        map:new((
-                            map:entry("id", $id), 
-                            map:entry("dateTime", $dateTime), 
-                            map:entry("message", $message),
-                            map:entry("newsitem-id", $newsitem-id),
-                            map:entry("result", $result)
-                        ))
-        ) 
+        xdmp:set-response-code(200, "OK")
+        ,
+        (: no events, return empty map :)
+        if (count($events) <= 0)    
+        then
+            xdmp:to-json(map:new(()))
+        (: else return first $number-of-events events :)
+        else
+            xdmp:to-json( 
+                for $e in $events
+                    let $id as xs:string := $e/@id
+                    let $dateTime as xs:dateTime := $e/when
+                    let $message as xs:string := $e/message
+                    let $result as xs:string := $e/what/result
+                    let $newsitem-id as xs:string := $e/what/newsitem-id
+                    return 
+                            map:new((
+                                map:entry("id", $id), 
+                                map:entry("dateTime", $dateTime), 
+                                map:entry("message", $message),
+                                map:entry("newsitem-id", $newsitem-id),
+                                map:entry("result", $result)
+                            ))
+            ) 
     )
 };
 
@@ -53,14 +67,22 @@ declare
     %rxq:produces('application/json')
 function api:providers()
 {
+    let $providers := collection("provider")/provider
+    
+    return
     (
-        xdmp:set-response-code(200, "OK"), 
-        xdmp:to-json( 
-            for $p in collection("provider")/provider
-                let $n := string($p/name)
-                let $l := string($p/link)
-                let $i := data($p/@id)
-                return 
+        xdmp:set-response-code(200, "OK")
+        , 
+        xdmp:to-json(
+            if (count($providers) <= 0)
+            then
+                map:new(())
+            else
+                for $p in $providers
+                    let $n := string($p/name)
+                    let $l := string($p/link)
+                    let $i := data($p/@id)
+                    return 
                         map:new((
                             map:entry("id", $i), 
                             map:entry("name", $n), 
