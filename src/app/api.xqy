@@ -301,7 +301,7 @@ function api:content(
    try {
         (
             xdmp:set-response-code(200, "OK"),
-            document(replace(xdmp:node-uri(collection("id:"||$id)[1]), "item.xml", "contents.html"))
+            document(replace(xdmp:node-uri(collection("id:"||$id)[1]), "item.xml", "content.html"))
         )
     } catch($e) {
         (
