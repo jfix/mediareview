@@ -23,4 +23,4 @@ for $i in (collection("content-retrieved")/news-item[not(language)])[1 to 100]
     let $_ := xdmp:log("DETECT LANGUAGE FOR THIS ITEM: " || xdmp:node-uri($i))
     
     return
-        xdmp:invoke("/src/tasks/language/insert.xqy", (map:new(map:entry("item", $i)))),
+        xdmp:invoke("/src/tasks/language/insert.xqy", (map:new(map:entry("item", $i))))

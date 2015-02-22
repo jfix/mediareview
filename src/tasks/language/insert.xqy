@@ -34,7 +34,7 @@ declare variable $confidence-threshold as xs:double := 8;
 
 
 let $url := xdmp:node-uri($item)
-let $content-url := replace(xdmp:node-uri($url), "item.xml", "content.html")
+let $content-url := replace($url, "item.xml", "content.html")
 let $text := normalize-space(string-join(doc($content-url)//text())) 
 
 (: results are returned in order of decreasing score, i.e. the best first: http://docs.marklogic.com/7.0/xdmp:encoding-language-detect :)
