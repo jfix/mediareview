@@ -38,7 +38,7 @@ let $content-url := replace($url, "item.xml", "content.html")
 let $text := normalize-space(string-join(doc($content-url)//text())) 
 
 (: results are returned in order of decreasing score, i.e. the best first: http://docs.marklogic.com/7.0/xdmp:encoding-language-detect :)
-let $result := xdmp:encoding-language-detect($text)[1]
+let $result := xdmp:encoding-language-detect(text{$text})[1]
 
 return
     let $lang := $result/d:language/text()
