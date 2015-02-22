@@ -11,8 +11,8 @@ declare variable $opencalais-apikey := "yoursecretkeyhere";
 declare variable $uclassify-read-apikey := "yoursecretkeyhere";
 declare variable $uclassify-write-apikey := "yoursecretkeyhere";
 
-(: SCREENSHOT-AS-A-SERVICE :)
-(: screenshot-as-a-service url:)
+(: SCREENSHOT-AS-A-SERVICE / MANET :)
+(: screenshot-as-a-service url, more info here: https://github.com/fzaninotto/screenshot-as-a-service / https://github.com/vbauer/manet :)
 declare variable $phantomjs-url := "http://localhost:3000/?url=";
 
 (: DETECTLANGUAGE.COM :)
@@ -22,3 +22,8 @@ declare variable $detectlanguage-apikey := "yoursecretkeyhere";
 declare variable $detectlanguage-status-url := "http://ws.detectlanguage.com/0.2/user/status?key=" || $detectlanguage-apikey;
 (: this is the api endpoint to call to get a json object with the answer :)
 declare variable $detectlanguage-query-url := "http://ws.detectlanguage.com/0.2/detect";
+
+(: READABILITY API - for content extraction from a web page :)
+(: get it here: https://www.readability.com/developers/api :)
+declare variable $readability-parser-apikey := "yoursecretkeyhere";
+declare variable $readability-parser-url := "https://www.readability.com/api/content/v1/parser?format=xml&amp;token=" || $readability-parser-apikey ;
