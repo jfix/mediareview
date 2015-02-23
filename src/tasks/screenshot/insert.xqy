@@ -76,7 +76,7 @@ try {
             )
 } catch($e) {
     xdmp:log("The following error occurred in take-one-screenshot.xqy: " || $e//*:message),
-    xdmp:log("Additional information from take-one-screenshot.xqy: link: " || string($link) || " - id: " || $id),
+    xdmp:log("Additional information from tasks/content/insert.xqy: link: " || string($link) || " - id: " || $id),
     xdmp:document-add-collections($url, ("screenshot-failed")),
     
     (: 

@@ -39,43 +39,42 @@ return
             (: insert result if 200 :) 
             if ($content-response[1]//xh:code = 200)
             then
-                let $content-doc := xdmp:unquote($content-response[2]/response/content/text(), "", ("repair-full"))
-                let $_ := xdmp:log("CONTENT INSERT: actual content doc: " || xdmp:quote($content-doc))
-                return
-                    try {
-                        (
-                            xdmp:log("CONTENT INSERT: new content for " || $doc-id || " found, inserting"),
-                            xdmp:document-add-collections($doc-path, ("content-retrieved")),
-                            u:record-event(
-                                u:create-event(
-                                    "content-bot", 
-                                    "content item successfully stored in database", 
-                                    (
-                                        <type>content-retrieved</type>,
-                                        <result>success</result>,
-                                        <content-url>{$content-link}</content-url>,
-                                        <content-path>{$content-path}</content-path>,
-                                        <content-type>{$content-response[1]//xh:content-type}</content-type>,
-                                        <content-length>{$content-response[1]//xh:content-length}</content-length>,
-                                        <newsitem-id>{$doc-id}</newsitem-id>
-                                    )
-                                )
-                            ),
-                            xdmp:document-insert(
-                                $content-path,
-                                $content-doc,
-                                $u:default-permissions,
+                try {
+                    let $content-doc := xdmp:unquote($content-response[2]/response/content/text(), "", ("repair-full"))
+                    let $_ := xdmp:log("CONTENT INSERT: actual content doc: " || xdmp:quote($content-doc))
+                    return (
+                        xdmp:log("CONTENT INSERT: new content for " || $doc-id || " found, inserting"),
+                        xdmp:document-add-collections($doc-path, ("content-retrieved")),
+                        u:record-event(
+                            u:create-event(
+                                "content-bot", 
+                                "content item successfully stored in database", 
                                 (
-                                    "content-item", 
-                                    "status:stored",
-                                    "mime-type:" || ($content-response[1]//xh:content-type, "text/html")[1],
-                                    "content-length:"|| $content-response[1]//xh:content-length
+                                    <type>content-retrieved</type>,
+                                    <result>success</result>,
+                                    <content-url>{$content-link}</content-url>,
+                                    <content-path>{$content-path}</content-path>,
+                                    <content-type>{$content-response[1]//xh:content-type}</content-type>,
+                                    <content-length>{$content-response[1]//xh:content-length}</content-length>,
+                                    <newsitem-id>{$doc-id}</newsitem-id>
                                 )
                             )
+                        ),
+                        xdmp:document-insert(
+                            $content-path,
+                            $content-doc,
+                            $u:default-permissions,
+                            (
+                                "content-item", 
+                                "status:stored",
+                                "mime-type:" || ($content-response[1]//xh:content-type, "text/html")[1],
+                                "content-length:"|| $content-response[1]//xh:content-length
+                            )
                         )
-                    } catch($e) {
-                        ()
-                    }
+                    )
+                } catch($e) {
+                    ()
+                }
             (: otherwise ... don't insert ... but generate a 'failure' event :)
             else
             (        

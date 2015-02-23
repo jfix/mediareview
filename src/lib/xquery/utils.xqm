@@ -3,6 +3,7 @@ xquery version "1.0-ml";
 module namespace u="http://mr-utils";
 
 import module namespace cfg = "http://mr-cfg" at "../../config/settings.xqy";
+import module namespace http = "http://http" at "http.xqm";
 import module namespace json="http://marklogic.com/xdmp/json" at "/MarkLogic/json/json.xqy";
 import module namespace mem="http://xqdev.com/in-mem-update" at "/MarkLogic/appservices/utils/in-mem-update.xqy";
 import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-doc-2007-01.xqy";
@@ -58,24 +59,6 @@ declare function u:http-get(
                 return $content
         else
             ()
-            
-            (:error handling:)
-        (:
-            get HEAD
-            get xh:response/xh:code
-            if code is 200
-                GET conents
-                check node type
-                    if not is element/document node
-                        tidy
-                        remove script and styles
-                        unquote
-                    return document/element
-                    
-            if code is between 299 and 399
-                get xh:response//xh:location
-                call u:get-http()
-        :)
 };
 
 (:~
@@ -87,7 +70,7 @@ declare function u:http-get-url(
     $url as xs:string
 ) as xs:string?
 {
-    let $head-res := try { xdmp:http-get($url, $http-get-options) } catch($e) { xdmp:log("u:http-get-url() - for " || $url || " - error: " || $e//message) }
+    let $head-res := try { xdmp:http-head($url, $http-get-options) } catch($e) { xdmp:log("u:http-get-url() - for " || $url || " - error: " || $e//message) }
     let $head-code := $head-res//xh:code
     let $location := $head-res//xh:location
     
@@ -110,34 +93,38 @@ declare function u:http-get-url(
                         
             return
                 switch($head-code)
-                case 200
-                    return
-                        if ($head-location)
-                        then
-                            u:http-get-url($head-location)
-                        else
+                    case 200
+                        return 
+                        (
+                            xdmp:log("CASE 200: " || $head-code || " - " || $url), 
                             $url
-                case 301
-                    return 
-                        if ($head-location)
-                        then
-                            u:http-get-url($head-location)
-                        else
-                            xdmp:log("u:http-get-url() - Error: no location header supplied in 301 response for " || $url)
-                case 302
-                    return 
-                        if ($head-location)
-                        then
-                            u:http-get-url($head-location)
-                        else
-                            xdmp:log("u:http-get-url() - Error: no location header supplied in 302 response for " || $url)
-                case 404
-                case 500
-                    return 
-                        xdmp:log("u:http-get-url() - Error " || $head-code || " for " || $url)
-                default 
-                    return 
-                        xdmp:log("u:http-get-url() - Error " || xdmp:quote($head-res) || " for " || $url)
+                        )
+                    case 301
+                    case 302    
+                        return 
+                            let $location := $head-res//xh:location
+                            let $head-location := 
+                                if ($location)
+                                then
+                                    (: Location header should be absolute, but some servers set relative locations,
+                                       according to a new HTTP spec, that may be acceptable:
+                                       http://webmasters.stackexchange.com/questions/31274/what-are-the-consequences-for-using-relative-location-headers?answertab=votes#tab-top
+                                    :)
+                                    if (not(starts-with($location, 'http')))
+                                    then
+                                        http:get-host-from-url($url) || "/" || replace($location, "^/+", "")
+                                    else
+                                        $location
+                                else
+                                    ()
+                                return
+                                    http:resolve-uri($location)
+                    default
+                        return
+                        (
+                            xdmp:log("DEFAULT SWITCH CASE FOR THIS CODE: " || $head-code || " - " || $url), 
+                            $url
+                        )
         } catch($e) {
            xdmp:log("u:http-get-url() - Error " || $e//message || " - url: " || $url)
         }
