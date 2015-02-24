@@ -23,8 +23,8 @@ declare variable $item as element(news-item) external;
 declare variable $url as xs:string := xdmp:node-uri($item);
 (: uri to save the screenshot to :)
 declare variable $path as xs:string := replace($url, "item.xml", "screenshot.png");
-(: url of the remote page that we want the screenshot of :)
-declare variable $link as xs:string? := u:http-get-url($item//link);
+(: url of the remote page that we want the screenshot of - let manet handle the redirects or whatever - not using u:http-get-url() :)
+declare variable $link as xs:string? := $item//link;
 (: the newsitem-id :)
 declare variable $id as xs:string := $item/@id;
 
@@ -75,8 +75,8 @@ try {
                 )
             )
 } catch($e) {
-    xdmp:log("The following error occurred in take-one-screenshot.xqy: " || $e//*:message),
-    xdmp:log("Additional information from tasks/content/insert.xqy: link: " || string($link) || " - id: " || $id),
+    xdmp:log("The following error occurred in tasks/screenshot/insert.xqy: " || $e//*:message),
+    xdmp:log("Additional information from tasks/screenshot/insert.xqy: link: " || string($link) || " - id: " || $id),
     xdmp:document-add-collections($url, ("screenshot-failed")),
     
     (: 
