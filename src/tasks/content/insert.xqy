@@ -41,7 +41,8 @@ return
             then
                 try {
                     let $content-doc := xdmp:unquote($content-response[2]/response/content/text(), "", ("repair-full"))
-                    let $_ := xdmp:log("CONTENT INSERT: actual content doc: " || xdmp:quote($content-doc))
+                    let $content-title := <h1 class='mr-item-title'>{$content-response[2]/response/title/text()}</h1>
+                            
                     return (
                         xdmp:log("CONTENT INSERT: new content for " || $doc-id || " found, inserting"),
                         xdmp:document-add-collections($doc-path, ("content-retrieved")),
@@ -62,7 +63,7 @@ return
                         ),
                         xdmp:document-insert(
                             $content-path,
-                            $content-doc,
+                            <div class='mr-item-wrapper'>{$content-title, $content-doc}</div>,
                             $u:default-permissions,
                             (
                                 "content-item", 
@@ -75,10 +76,11 @@ return
                 } catch($e) {
                     ()
                 }
-            (: otherwise ... don't insert ... but generate a 'failure' event :)
+            (: otherwise ... don't insert ... but add a failure collection and generate a 'failure' event :)
             else
             (        
-                xdmp:log("retrieval of " || $content-link || " returned a " || $content-response[1]//xh:code),
+                xdmp:document-add-collections($doc-path, ("content:retrieval-failure")),
+                xdmp:log("retrieval of " || $content-link || " returned a >>" || $content-response[1]//xh:code || "<< code"),
                 u:record-event(
                     u:create-event(
                         "content-bot",

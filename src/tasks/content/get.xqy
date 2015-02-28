@@ -10,10 +10,14 @@ declare namespace xh = "xdmp:http";
  : the retrieval of the HTML and its storage.
  :)
 
-for $i in (cts:search(/news-item, cts:and-not-query(
-    cts:collection-query("news-item")
-    ,
-    cts:collection-query("content-retrieved")
+for $i in (cts:search(/news-item, 
+    cts:and-not-query(
+        cts:collection-query("news-item")
+        ,
+        cts:or-query((
+            cts:collection-query("content-retrieved"),
+            cts:collection-query("content:retrieval-failure")
+        ))
     )
 ))[1 to 100] (: restrictive predicate could be removed at some stage :)
     
@@ -25,11 +29,11 @@ for $i in (cts:search(/news-item, cts:and-not-query(
             let $response := try { xdmp:http-head($url, $u:http-get-options) } catch($e) { xdmp:log("u:http-get-url() - for " || $url || " - error: " || $e//message) }
             
             return 
-                (: not 200 response or not an html or text file ... :)
-                if (xs:int($response/xh:code) > 200 or not(contains($response/xh:headers/xh:content-type, "text")))
+                (: not 200 response or not an html or text file ... there can be more than one content-type in a response :)
+                if (xs:int($response/xh:code) > 200 or not($response/xh:headers/xh:content-type ! lower-case(.) = "text"))
                 then
                     (
-                        xdmp:log("tasks/content/get.xqy: not getting contents because: " || xdmp:quote($response))
+                        xdmp:log("tasks/content/get.xqy: not getting contents because bad code or binary contents: " || xdmp:quote($response))
                     )
                 else
                     (
