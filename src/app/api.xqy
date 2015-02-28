@@ -296,25 +296,18 @@ declare
     %rxq:produces('text/html')
 function api:content(
     $id as xs:string
-) as item()
+) as item()?
 {
-   try {
-        (
-            xdmp:set-response-code(200, "OK"),
-            document(replace(xdmp:node-uri(collection("id:"||$id)[1]), "item.xml", "content.html"))
-        )
-    } catch($e) {
-        (
-            xdmp:set-response-code(404, "Not found"),
-            <html>
-            <body>
-                here should be content but there isn't any yet<br/>
-                you can attempt to force retrieval by clicking this button:<br/>
-                ...
-            </body>
-            </html>
-        )
-    }   
+    let $content := document(replace(xdmp:node-uri(collection("id:"||$id)[1]), "item.xml", "content.html"))
+    return
+        if ($content)
+        then
+            (xdmp:set-response-code(200, "OK"), $content)
+        else
+            (xdmp:set-response-code(404, "Not Found"),
+             xdmp:set-response-content-type("application/json"), 
+             xdmp:to-json(map:entry("error", "Not found"))
+            )
 };
 
 (:~
@@ -342,7 +335,19 @@ function api:screenshot(
         )
     }            
 };
-
+(:
+declare
+    %rxq:path('/api/news-items/([a-f0-9]+)/screenshot')
+    %rxq:POST
+function api:screenshot(
+    $id as xs:string
+)
+{
+    let $remote-url := xdmp:get-request-field("url")
+    
+    return ()
+};
+:)
 (:~
  : Returns a list of news items within a given time period.
  : This time period can be defined using a certain number of parameters:
@@ -436,7 +441,9 @@ xdmp:set-response-code(200, "OK"),
     <body>
         <p>{
             count(collection("news-item"))
-            } items
+            } 
+            
+            items
             
             - {count(cts:search(/news-item, cts:and-not-query(
                 cts:collection-query("news-item")
@@ -444,6 +451,7 @@ xdmp:set-response-code(200, "OK"),
                 cts:collection-query("screenshot-saved")
                 )
                 ))} 
+                
             missing screenshot image
             
             - {count(cts:search(/news-item, cts:and-not-query(
@@ -453,6 +461,7 @@ xdmp:set-response-code(200, "OK"),
                 )
                 ))
             } 
+            
             not yet language-detected
             
             - { count(collection("content-retrieved")) }
@@ -461,30 +470,40 @@ xdmp:set-response-code(200, "OK"),
         </p>
         <hr/>
         <div>
-            <ul>{
+            <ul style="font-family:monospace; list-style-type:none">{
             for $item in (collection("news-item")//news-item)[1 to 1000]
+            let $id := $item/@id
             order by xs:date($item/normalized-date) descending, xs:time($item/normalized-date/@time) descending
             return 
                 <li>
                     {$item/date}: 
                     
-                    {if ($item/language) then $item/language[1] || " - " else ()}
+                    <a href="{u:item-url($id)}">{data($id)}</a> - 
                     
-                    <a href="{$item/link}">{ $item/title || " - " || $item/provider}</a>
-                    -
+                    {if ($item/language) then $item/language[1] || " - " else ("&nbsp;&nbsp; - ")}
+
                     {if (("screenshot-saved" = xdmp:document-get-collections(xdmp:node-uri($item))))
                      then
-                        <a href="{"/api/news-items/" || $item/@id || "/screenshot"}">screenshot</a>
+                        <span>
+                            <a href="{u:screenshot-url($id)}">screenshot</a>
+                            { if (u:screenshot-size($id) > 3000000 and not(empty(u:screenshot-date($id))) 
+                                and (u:screenshot-date($id) > fn:dateTime(xs:date('2015-01-01'),
+xs:time('01:00:00-00:00')))) then <strong> HUGE AND RECENT: {u:screenshot-date($id)}</strong> else ()}
+                        </span>
                      else 
-                        xdmp:node-uri($item)
+                        "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                     }
                     -
                     {if (("content-retrieved" = xdmp:document-get-collections(xdmp:node-uri($item))))
                      then
-                        <a href="{"/api/news-items/" || $item/@id || "/content"}">content</a>
+                        <a href="{u:content-url($item)}">content</a>
                      else 
-                        "[no content]"
+                        "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                     }
+                    -                     
+                    <a href="{$item/link}">{ $item/title || " - " || $item/provider}</a>
+                    
+
                 </li>
             }</ul>
         </div>
