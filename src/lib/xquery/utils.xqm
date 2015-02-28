@@ -15,6 +15,11 @@ declare namespace h = "http://www.w3.org/1999/xhtml";
 (: to generate an identifier hash using hmac-sha1, I need to provide a secret :)
 declare variable $secretkey as xs:string := "not-so-secret-key";
 
+declare variable $api-base as xs:string := "/api";
+declare variable $api-base-newsitems as xs:string := $api-base || "/news-items/";
+declare variable $api-base-providers as xs:string := $api-base || "/providers/";
+
+
 declare variable $default-permissions := (
     xdmp:permission("mr-read-documents-role", "read"),
     xdmp:permission("mr-add-documents-role", "update"),
@@ -227,7 +232,7 @@ declare function u:convert-news-item(
             let $_ := map:put($nm, "provider", $pm)
             let $_ := map:put($nm, "time", data($item/normalized-date/@time))
             let $_ := map:put($nm, "date", string($item/normalized-date))
-            let $_ := map:put($nm, "screenshot", u:screenshot-url($item))
+            let $_ := map:put($nm, "screenshot", u:screenshot-url($item/@id))
             
             return xdmp:to-json($nm)
 };
@@ -349,11 +354,58 @@ declare function u:create-event(
  : No extension is given, mime-type is always "image/png"
  :)
 declare function u:screenshot-url(
+    $id as xs:string
+) as xs:string
+{
+    $api-base-newsitems || $id || "/screenshot"
+};
+
+(:~
+ : Given a news-item element, return the URL path that points to the
+ : content (this is mainly to have this not all over the place)
+ : No extension is given, mime-type is always "text/html"
+ :)
+declare function u:content-url(
     $news-item as element(news-item)
 ) as xs:string
 {
-    "/api/news-items/" || $news-item/@id || "/screenshot"
+    $api-base-newsitems || $news-item/@id || "/content"
 };
+
+declare function u:item-url(
+    $id as xs:string
+) as xs:string
+{
+    $api-base-newsitems || $id
+};
+
+declare function u:screenshot-size(
+    $id as xs:string
+) as xs:integer?
+{
+    let $path := replace(xdmp:node-uri(collection("id:" || $id)), "item.xml", "screenshot.png")
+    return xdmp:binary-size(document($path)/binary())
+};
+
+(: Returns a dateTime when the screenshot was successfully saved
+ :
+ : @param news-item $id as xs:string
+ : @returns xs:dateTime or empty sequence
+ :)
+declare function u:screenshot-date(
+    $id as xs:string
+) as xs:dateTime?
+{
+    (collection("event")
+        /event[what/newsitem-id[. = $id] 
+            and what/type[.='screenshot-saved'] 
+            and what/result[.='success']
+        ]/when/text()
+    ,
+        ()
+    )[1]
+};
+
 
 (:~
  : Given a news-item element, return the URL path that points to the
@@ -365,7 +417,7 @@ declare function u:provider-url(
 ) as xs:string
 {
     let $provider-id := u:create-provider-id($news-item)
-    return "/api/providers/" || $provider-id
+    return $api-base-providers || $provider-id
 };
 
 declare function u:get-host-from-url(
@@ -401,7 +453,7 @@ declare function u:create-news-item-url(
     $format as xs:string
 ) as xs:string
 {
-    "/api/news-items/" || $id || "." || $format
+    $api-base-newsitems || $id || "." || $format
 };
 
 (:~
