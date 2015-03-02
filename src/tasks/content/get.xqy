@@ -30,7 +30,7 @@ for $i in (cts:search(/news-item,
             
             return 
                 (: not 200 response or not an html or text file ... there can be more than one content-type in a response :)
-                if (xs:int($response/xh:code) > 200 or not($response/xh:headers/xh:content-type ! lower-case(.) = "text"))
+                if (xs:int($response/xh:code) > 200 or not($response/xh:headers/xh:content-type ! contains(lower-case(.), "text")))
                 then
                     (
                         xdmp:log("tasks/content/get.xqy: not getting contents because bad code or binary contents: " || xdmp:quote($response))
