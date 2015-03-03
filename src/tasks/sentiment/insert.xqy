@@ -36,94 +36,51 @@ xquery version "1.0-ml";
         </readCalls>
     </uclassify>
     
+    @textCoverage gives an indication as of how much of the text was
+    found in the training corpus (0 = none, 1 = all words were found);
+    can be used to evaluate confidence of the result
     More info on the API: http://www.uclassify.com/XmlApiDocumentation.aspx
 :)
 
-(:
-        
-        TODO TODO TODO
-
-:)
-
 import module namespace cfg = "http://mr-cfg" at "/src/config/settings.xqy";
-import module namespace json="http://marklogic.com/xdmp/json" at "/MarkLogic/json/json.xqy";
 import module namespace u = "http://mr-utils" at "/src/lib/xquery/utils.xqm";
-declare namespace jb = "http://marklogic.com/xdmp/json/basic";
 declare namespace xh = "xdmp:http";
+declare namespace class = "http://api.uclassify.com/1/ResponseSchema";
 
-(: url of the XML news item to which we need to add a collection :)
-declare variable $id as xs:string external;
-declare variable $item as element(news-item) := collection("id:" || $id)/news-item;
+(:declare variable $item as element(news-item) external;:)
+declare variable $item as element(news-item) := collection("id:f9bbd62")/*;
 
-try {
-    let $url := xdmp:node-uri($item)
-    
-    (: It turned out to work better, for larger texts, to POST the request,
-       although a GET works too, in theory. :)
-    let $res := xdmp:http-post($cfg:detectlanguage-query-url, 
-        <options xmlns="xdmp:http">
-            <headers><content-type>application/x-www-form-urlencoded</content-type></headers>
-        </options>, 
-        text{ "key=" || $cfg:detectlanguage-apikey || "&amp;q=" || $item//text-only }
-    )
-    let $response-code := data($res[1]//xh:code)
+let $text := "excellent average" (:string-join(doc(u:content-path($item/@id))//text(), " "):)
 
-    return
-        if ($response-code ne 200)
-        then
-            fn:error(QName("", "URLERROR"), $response-code || ": " || $res[1]//xh:message || " - " || $url)
-        else
-            let $result-item := json:transform-from-json($res[2])//jb:json[jb:isReliable ='true'][1]
-            return
-                if ($result-item)
-                then
-                    let $lang := $result-item/jb:language/text()
-                    let $confidence := $result-item/jb:confidence/text()
-                    return
-                       (
-                       xdmp:document-add-collections($url, ("language-detected")),
-                       
-                       (: if using $item directly, MarkLogic will complain about not being able to "update external nodes" :)
-                       xdmp:node-insert-child(document(xdmp:node-uri($item))/*, <language confidence="{$confidence}">{$lang}</language>),
-                       u:record-event(
-                             u:create-event(
-                                 "language-bot", 
-                                 "language successfully detected", 
-                                 (
-                                     <type>language-detected</type>,
-                                     <result>success</result>,
-                                     <language>{$lang}</language>,
-                                     <confidence>{$confidence}</confidence>,
-                                     <text>{$item//text-only}</text>,
-                                     <link>{$item//link/text()}</link>,
-                                     <newsitem-id>{data($item/@id)}</newsitem-id>,
-                                     <path>{$url}</path>
-                                 )
-                             )
-                         )
+let $options := 
+    <options xmlns="xdmp:http">
+        <data>{xdmp:quote(
+            <uclassify xmlns="http://api.uclassify.com/1/RequestSchema" version="1.01">
+            <texts>
+                <textBase64 id="TextId">{xdmp:base64-encode($text)}</textBase64>
+            </texts>
+            <readCalls readApiKey="{$cfg:uclassify-read-apikey}">
+                <classify id="classify{$item/@id}" username="uClassify" classifierName="Sentiment" textId="TextId"/>
+            </readCalls>
+        </uclassify>
+        )}</data>
+    </options>
+ 
+let $result := xdmp:http-post("http://api.uclassify.com/", $options)
+return
+    if ($result[1]/xh:code[. = 200])
+    then
+        let $class-result := xdmp:unquote($result[2])
+        return 
+            if ($class-result/class:uclassify/class:status/@statusCode[.=2000])
+            then
+                let $classification := $class-result//class:classification
+                let $text-coverage := number($classification/@textCoverage)
+                let $sentiment := (for $i in $classification/class:class order by $i/@p return $i)[1]
+                return ($text-coverage, $sentiment)
+            else
+                ()
+    else
+        ()
+        
 
-                       )
-                else
-                (
-                    xdmp:log("DETECTIONNOTRELIABLE: The language detection was not reliable for '" || $url || "', not using this result: " || xdmp:quote($res[2])),
-                    u:record-event(
-                        u:create-event(
-                            "language-bot", 
-                            "language not detected", 
-                            (
-                                <type>language-detected</type>,
-                                <result>failure</result>,
-                                <text>{$item//text-only}</text>,
-                                <link>{$item//link/text()}</link>,
-                                <newsitem-id>{data($item/@id)}</newsitem-id>,
-                                <path>{$url}</path>
-                            )
-                        )
-                    )
-
-                    (:fn:error(QName("", "DETECTIONNOTRELIABLE"), "The language detection was not reliable for '" || $url || "', not using result."):)
-                )
-} catch($e) {
-    xdmp:log("DETECTLANGUAGEERROR: "|| $e//*:message)
-(:    fn:error(QName("", "DETECTLANGUAGEERROR"), $e//*:message):)
-}
