@@ -13,6 +13,7 @@ import module namespace json="http://marklogic.com/xdmp/json" at "/MarkLogic/jso
 import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-doc-2007-01.xqy";
 import module namespace u = "http://mr-utils" at "/src/lib/xquery/utils.xqm";
 import module namespace rxq = "http://exquery.org/ns/restxq" at "/src/lib/xquery/rxq.xqy";
+declare namespace xh = "xdmp:http";
 
 (:~
  : Return the last XXX (currently 100) events in a JSON array
@@ -335,7 +336,9 @@ function api:screenshot(
         )
     }            
 };
-(:
+
+(: TODO: AUTHENTICATION :)
+
 declare
     %rxq:path('/api/news-items/([a-f0-9]+)/screenshot')
     %rxq:POST
@@ -476,6 +479,19 @@ xdmp:set-response-code(200, "OK"),
             order by xs:date($item/normalized-date) descending, xs:time($item/normalized-date/@time) descending
             return 
                 <li>
+                    {
+                        if ($item/sentiment)
+                        then
+                            if (data($item/sentiment/@value) = 'negative')
+                            then
+                                <span title="{data($item/sentiment/@probability)||'%'}" style="color:red">☹&nbsp;</span>
+                            else
+                                <span title="{data($item/sentiment/@probability)||'%'}" style="color:green">☺&nbsp;</span>
+
+                        else
+                            "&nbsp;&nbsp;"
+                    }
+                    
                     {$item/date}: 
                     
                     <a href="{u:item-url($id)}">{data($id)}</a> - 
@@ -498,7 +514,11 @@ xs:time('01:00:00-00:00')))) then <strong> HUGE AND RECENT: {u:screenshot-date($
                      then
                         <a href="{u:content-url($item)}">content</a>
                      else 
-                        "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                        if (("content:retrieval-failure" = xdmp:document-get-collections(xdmp:node-uri($item))))
+                        then
+                            <strong style="color:red">failure</strong>
+                        else
+                            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                     }
                     -                     
                     <a href="{$item/link}">{ $item/title || " - " || $item/provider}</a>

@@ -47,10 +47,10 @@ import module namespace u = "http://mr-utils" at "/src/lib/xquery/utils.xqm";
 declare namespace xh = "xdmp:http";
 declare namespace class = "http://api.uclassify.com/1/ResponseSchema";
 
-(:declare variable $item as element(news-item) external;:)
-declare variable $item as element(news-item) := collection("id:f9bbd62")/*;
+declare variable $item as element(news-item) external;
+(:declare variable $item as element(news-item) := collection("id:f9bbd62")/*;:)
 
-let $text := "excellent average" (:string-join(doc(u:content-path($item/@id))//text(), " "):)
+let $text := string-join(doc(u:content-path($item/@id))//text(), " ")
 
 let $options := 
     <options xmlns="xdmp:http">
@@ -66,21 +66,53 @@ let $options :=
         )}</data>
     </options>
  
-let $result := xdmp:http-post("http://api.uclassify.com/", $options)
+let $result := xdmp:http-post($cfg:uclassify-api-url, $options)
+
 return
     if ($result[1]/xh:code[. = 200])
     then
         let $class-result := xdmp:unquote($result[2])
+        let $uri := xdmp:node-uri($item)
         return 
             if ($class-result/class:uclassify/class:status/@statusCode[.=2000])
             then
                 let $classification := $class-result//class:classification
                 let $text-coverage := number($classification/@textCoverage)
                 let $sentiment := (for $i in $classification/class:class order by $i/@p return $i)[1]
-                return ($text-coverage, $sentiment)
+                let $element := <sentiment textcoverage="{$text-coverage * 100}" value="{$sentiment/@className}" probability="{$sentiment/@p * 100}"/>
+                return 
+                (
+                    xdmp:log("/tasks/sentiment/insert.xqy: SENTIMENT FOUND: " || xdmp:quote($element)),
+                    xdmp:document-add-collections(xdmp:node-uri($item), 
+                        (
+                            "sentiment-determined", 
+                            "sentiment-classifier:uclassify", 
+                            "sentiment-value:" || $sentiment/@className
+                        )
+                    ),
+                    
+                    xdmp:node-insert-child(document($uri)/*, $element),
+                    
+                    u:record-event(
+                        u:create-event(
+                            "sentiment-bot", 
+                            "sentiment successfully detected", 
+                            (
+                                <type>sentiment-detected</type>,
+                                <result>success</result>,
+                                <sentiment>{$sentiment/@className}</sentiment>,
+                                <confidence>{$sentiment/@p * 100}</confidence>,
+                                <link>{$item//link/text()}</link>,
+                                <newsitem-id>{data($item/@id)}</newsitem-id>,
+                                <path>{$uri}</path>
+                            )
+                        )
+                    )
+                )
             else
-                ()
+                xdmp:log("/tasks/sentiment/insert.xqy: SENTIMENT NOT FOUND: " || xdmp:quote($class-result))
     else
-        ()
+        xdmp:log("/tasks/sentiment/insert.xqy: UCLASSIFY RETURNED NON-200: " || xdmp:quote($result[1]))
+
         
 

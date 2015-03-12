@@ -17,8 +17,8 @@ for $i in cts:search(/news-item,
     cts:and-not-query(
         cts:collection-query("content-retrieved")
         ,
-        cts:collection-query(("sentiment-determined"))
+        cts:collection-query("sentiment-determined")
     )
-)
+)[1 to 1000]
 return
     xdmp:invoke("/src/tasks/sentiment/insert.xqy", (map:new(map:entry("item", $i))))
