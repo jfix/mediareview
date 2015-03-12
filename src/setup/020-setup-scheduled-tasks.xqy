@@ -71,7 +71,7 @@ let $detect-languages-task := admin:group-hourly-scheduled-task(
    $task-priority
 )
 
-(:
+
 let $get-sentiments-task := admin:group-hourly-scheduled-task(
    "/src/tasks/sentiment/get.xqy",
    $task-root,
@@ -83,7 +83,7 @@ let $get-sentiments-task := admin:group-hourly-scheduled-task(
    xdmp:host(),
    $task-priority
 )
-:)
+
 
 (:
 let $get-concepts-task := admin:group-hourly-scheduled-task(
@@ -104,7 +104,7 @@ let $config := admin:group-add-scheduled-task($config, $task-group, $extract-pro
 let $config := admin:group-add-scheduled-task($config, $task-group, $get-news-task)
 let $config := admin:group-add-scheduled-task($config, $task-group, $get-screenshots-task)
 let $config := admin:group-add-scheduled-task($config, $task-group, $get-contents-task)
-(:let $config := admin:group-add-scheduled-task($config, $task-group, $get-sentiments-task):)
+let $config := admin:group-add-scheduled-task($config, $task-group, $get-sentiments-task)
 (:let $config := admin:group-add-scheduled-task($config, $task-group, $get-concepts-task):)
 
 return admin:save-configuration-without-restart($config)
