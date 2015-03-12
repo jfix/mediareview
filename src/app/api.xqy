@@ -337,18 +337,40 @@ function api:screenshot(
     }            
 };
 
-(: TODO: AUTHENTICATION :)
+(: TODO: AUTHENTICATION AND MORE :)
 
-declare
+(:declare
     %rxq:path('/api/news-items/([a-f0-9]+)/screenshot')
     %rxq:POST
-function api:screenshot(
+function api:add-screenshot(
     $id as xs:string
 )
 {
     let $remote-url := xdmp:get-request-field("url")
+    let $head := xdmp:http-head($cfg:screenshot-server-url || '?url=google.com')[1] 
+    return 
+        if ($head/xh:code = 200 and $head/xh:headers/xh:content-type = 'image/png')
+        then
+            (
+               xdmp:set-response-code(200, "OK"),
+               xdmp:document-load(
+                    $remote-url,
+                    <options xmlns="xdmp:document-load">
+                        <uri>{u:screenshot-path($id)}</uri>
+                        <permissions>{$u:default-permissions}</permissions>
+                        <collections>
+                            <collection>screenshot</collection>
+                            <collection>manual-insert</collection>
+                        </collections>
+                    </options>
+                )
+            )
+        else
     
-    return ()
+            (
+                xdmp:set-response-code(200, "OK"),
+                "<h1>i can hear you saying: " || $remote-url || "</h1>"
+            )
 };
 :)
 (:~
