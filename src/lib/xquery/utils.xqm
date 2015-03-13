@@ -360,6 +360,28 @@ declare function u:screenshot-url(
     $api-base-newsitems || $id || "/screenshot"
 };
 
+declare function u:screenshot-path(
+    $id as xs:string
+) as xs:string?
+{
+    try {
+        replace(xdmp:node-uri(collection("id:"||$id)), "item.xml", "screenshot.png")
+    } catch($e) {
+        ()
+    }
+};
+
+declare function u:content-path(
+    $id as xs:string
+) as xs:string?
+{
+    try {
+        replace(xdmp:node-uri(collection("id:"||$id)), "item.xml", "content.html")
+    } catch($e) {
+        ()
+    }
+};
+
 (:~
  : Given a news-item element, return the URL path that points to the
  : content (this is mainly to have this not all over the place)
@@ -418,6 +440,26 @@ declare function u:provider-url(
 {
     let $provider-id := u:create-provider-id($news-item)
     return $api-base-providers || $provider-id
+};
+declare function u:provider-path(
+    $id as xs:string
+) as xs:string?
+{
+    try {
+        xdmp:node-uri(collection("id:"||$id))
+    } catch($e) {
+        ()
+    }
+};
+declare function u:event-path(
+    $id as xs:string
+) as xs:string?
+{
+    try {
+        xdmp:node-uri(collection("id:"||$id))
+    } catch($e) {
+        ()
+    }
 };
 
 declare function u:get-host-from-url(
