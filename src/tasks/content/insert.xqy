@@ -38,7 +38,7 @@ return
         let $content-response := xdmp:http-get($mercury-link, 
             <options xmlns="xdmp:http">
                 <headers>
-                    <X-Api-Key>{$mercury-parser-apikey}</X-Api-Key>
+                    <X-Api-Key>{$cfg:mercury-parser-apikey}</X-Api-Key>
                 </headers>
             </options>)
         
