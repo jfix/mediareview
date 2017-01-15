@@ -10,16 +10,18 @@ xquery version "1.0-ml";
 
 import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-doc-2007-01.xqy";
 import module namespace cfg = "http://mr-cfg" at "/src/config/settings.xqy";
-import module namespace nd="http://marklogic.com/appservices/utils/normalize-dates" at "/src/lib/xquery/normalize-dates.xqm";
+import module namespace nd = "http://marklogic.com/appservices/utils/normalize-dates" at "/src/lib/xquery/normalize-dates.xqm";
 import module namespace u = "http://mr-utils" at "/src/lib/xquery/utils.xqm";
-import module namespace mem="http://xqdev.com/in-mem-update" at "/MarkLogic/appservices/utils/in-mem-update.xqy";
-
+import module namespace mem = "http://xqdev.com/in-mem-update" at "/MarkLogic/appservices/utils/in-mem-update.xqy";
+import module namespace json = "http://marklogic.com/xdmp/json" at "/MarkLogic/json/json.xqy";
+ 
 declare namespace h = "http://www.w3.org/1999/xhtml";
 declare namespace xh = "xdmp:http";
+declare namespace j = "http://marklogic.com/xdmp/json/basic";
 
 (: DEBUG :)
-(:declare variable $item as element(news-item) := collection("id:d3a8fb8")/news-item;:)
-declare variable $item as element(news-item) external;
+declare variable $item as element(news-item) := collection("id:d3a8fb8")/news-item;
+(:declare variable $item as element(news-item) external;:)
 
 let $doc-path := xdmp:node-uri($item)
 let $doc-id := data($item/@id)
@@ -32,17 +34,25 @@ return
     then
         xdmp:log("PROBLEM WITH NON-EXISTING CONTENT LINK: " || $content-link)
     else
-        let $readability-link := string-join(($cfg:readability-parser-url, "url=" || $content-link), "&amp;")
-        let $content-response := xdmp:http-get($readability-link)
+        let $mercury-link := string-join(($cfg:mercury-parser-url, "url=" || $content-link), "&amp;")
+        let $content-response := xdmp:http-get($mercury-link, 
+            <options xmlns="xdmp:http">
+                <headers>
+                    <X-Api-Key>{$mercury-parser-apikey}</X-Api-Key>
+                </headers>
+            </options>)
         
         return 
             (: insert result if 200 :) 
             if ($content-response[1]//xh:code = 200)
             then
                 try {
-                    let $content-doc := xdmp:unquote($content-response[2]/response/content/text(), "", ("repair-full"))
-                    let $content-title := <h1 class='mr-item-title'>{$content-response[2]/response/title/text()}</h1>
-                            
+                    let $json-doc := $content-response[2]/text()
+                    let $xml-doc := json:transform-from-json($json-doc)
+
+                    let $content-doc := xdmp:unquote($xml-doc/j:content/text(), "", ("repair-full"))
+                    let $content-title := <h1 class='mr-item-title'>{$xml-doc/j:title/text()}</h1>
+
                     return (
                         xdmp:log("CONTENT INSERT: new content for " || $doc-id || " found, inserting"),
                         xdmp:document-add-collections($doc-path, ("content-retrieved")),
