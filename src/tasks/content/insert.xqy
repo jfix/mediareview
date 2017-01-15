@@ -34,7 +34,7 @@ return
     then
         xdmp:log("PROBLEM WITH NON-EXISTING CONTENT LINK: " || $content-link)
     else
-        let $mercury-link := string-join(($cfg:mercury-parser-url, "url=" || $content-link), "&amp;")
+        let $mercury-link := $cfg:mercury-parser-url || $content-link
         let $content-response := xdmp:http-get($mercury-link, 
             <options xmlns="xdmp:http">
                 <headers>
