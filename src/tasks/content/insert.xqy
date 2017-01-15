@@ -20,8 +20,8 @@ declare namespace xh = "xdmp:http";
 declare namespace j = "http://marklogic.com/xdmp/json/basic";
 
 (: DEBUG :)
-declare variable $item as element(news-item) := collection("id:d3a8fb8")/news-item;
-(:declare variable $item as element(news-item) external;:)
+(:declare variable $item as element(news-item) := collection("id:d3a8fb8")/news-item;:)
+declare variable $item as element(news-item) external;
 
 let $doc-path := xdmp:node-uri($item)
 let $doc-id := data($item/@id)
